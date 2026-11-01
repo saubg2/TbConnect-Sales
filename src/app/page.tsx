@@ -123,6 +123,12 @@ export default function DevHarnessPage() {
         </div>
         <div className="flex items-center gap-2">
           <Link
+            href="/inbox"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
+          >
+            Inbox & Threads →
+          </Link>
+          <Link
             href="/contacts"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm transition"
           >

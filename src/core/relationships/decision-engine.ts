@@ -17,6 +17,7 @@ import {
   MessageDraft,
 } from '@/providers/types';
 import { ActionService } from '@/core/actions/service';
+import { VoiceValidator } from '@/core/agents/voice';
 
 export interface ProcessInboundParams {
   workspaceId: string;
@@ -364,6 +365,21 @@ export class DecisionEngine {
           decision,
           decisionContext,
         });
+
+        // Validate draft voice and factual/permission invariants
+        if (draft) {
+          const voiceCheck = VoiceValidator.validateDraft(
+            draft,
+            (agent.voiceJson as Record<string, any>) || {},
+            (agent.permissionsJson as Record<string, any>) || {}
+          );
+
+          if (!voiceCheck.isValid) {
+            decision.approval_required = true;
+            decision.next_action = 'REQUEST_APPROVAL';
+            decision.reason = `Draft contains voice or permission violations (${voiceCheck.violations.map((v) => v.rule).join(', ')}); human approval required.`;
+          }
+        }
       } catch (err: any) {
         // Drafting failed: escalate for human intervention
         decision.approval_required = true;
