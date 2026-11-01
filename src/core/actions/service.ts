@@ -1,4 +1,4 @@
-import { eq, and, inArray } from 'drizzle-orm';
+import { eq, and, inArray, isNotNull, desc } from 'drizzle-orm';
 import { actions, events, contacts, relationships } from '@/db/schema';
 import type { Action, AuditEvent } from '@/db/schema';
 import type { ActionType } from '@/providers/types';
@@ -133,11 +133,37 @@ export class ActionService {
       throw new Error(`Cannot approve action for contact ${contact.emailNormalized}: contact is suppressed.`);
     }
 
-    // 3. Update status to APPROVED / PENDING for queue execution
+    // 3. Domain Warm-up Stagger: Avoid blast spikes for new domains
+    let finalScheduledAt = action.scheduledAt;
+    if (!finalScheduledAt || finalScheduledAt.getTime() <= Date.now()) {
+      const [lastScheduled] = await this.db
+        .select({ scheduledAt: actions.scheduledAt })
+        .from(actions)
+        .where(
+          and(
+            eq(actions.workspaceId, params.workspaceId),
+            inArray(actions.status, ['PENDING', 'APPROVED']),
+            isNotNull(actions.scheduledAt)
+          )
+        )
+        .orderBy(desc(actions.scheduledAt))
+        .limit(1);
+
+      if (lastScheduled && lastScheduled.scheduledAt && lastScheduled.scheduledAt.getTime() > Date.now()) {
+        const baseIntervalMs = parseInt(process.env.WARMUP_BASE_DELAY_MS || '120000', 10); // default 2 minutes
+        const jitterMs = Math.floor(Math.random() * 45000 + 15000); // 15s to 60s random jitter
+        finalScheduledAt = new Date(lastScheduled.scheduledAt.getTime() + baseIntervalMs + jitterMs);
+      } else {
+        finalScheduledAt = new Date();
+      }
+    }
+
+    // 4. Update status to APPROVED / PENDING for queue execution
     const [updatedAction] = await this.db
       .update(actions)
       .set({
         status: 'APPROVED',
+        scheduledAt: finalScheduledAt,
         approvedDraftVersion: currentDraftVersion,
         approvedBy: params.approvedBy,
         approvedAt: new Date(),

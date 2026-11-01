@@ -178,6 +178,12 @@ export class ActionWorker {
       };
 
       try {
+        // Randomized warmup jitter before dispatching to protect new domain reputation
+        if (process.env.NODE_ENV === 'production') {
+          const jitterSleepMs = Math.floor(Math.random() * 5000 + 3000); // 3s to 8s
+          await new Promise((resolve) => setTimeout(resolve, jitterSleepMs));
+        }
+
         const sendResult = await this.emailSender.send(outboundMsg, action.idempotencyKey);
 
         if (sendResult.status === 'ACCEPTED') {
