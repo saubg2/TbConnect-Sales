@@ -35,9 +35,8 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json();
+    const body = await req.json().catch(() => ({}));
     const workspaceId = body.workspaceId || 'ws_default';
-    const userId = body.userId || 'dev_operator';
 
     const db = await getDbAsync();
 
@@ -47,6 +46,8 @@ export async function POST(req: Request) {
       .from(memberships)
       .where(eq(memberships.workspaceId, workspaceId))
       .limit(1);
+
+    const userId = existingMember ? existingMember.userId : (body.userId || 'usr_default_admin');
 
     if (!existingMember) {
       await db.insert(memberships).values({
@@ -59,7 +60,7 @@ export async function POST(req: Request) {
     }
 
     const authService = new TelegramAuthService(db);
-    const code = await authService.generateLinkingToken(workspaceId, userId);
+    const code = await authService.generateLinkingTokenAsync(workspaceId, userId);
     
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tbconnect-sales-production.up.railway.app';

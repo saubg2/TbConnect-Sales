@@ -16,14 +16,23 @@ export class TelegramAuthService {
 
   private async persistTokenToDb(workspaceId: string, userId: string, code: string, expiresAt: number) {
     try {
-      const [membership] = await this.db
+      let [membership] = await this.db
         .select()
         .from(memberships)
         .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.userId, userId)))
         .limit(1);
 
+      if (!membership) {
+        [membership] = await this.db
+          .select()
+          .from(memberships)
+          .where(eq(memberships.workspaceId, workspaceId))
+          .limit(1);
+      }
+
       if (membership) {
-        const currentPerms = (membership.permissionsJson as Record<string, any>) || {};
+        const rawPerms = membership.permissionsJson ?? membership.permissions_json ?? {};
+        const currentPerms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
         await this.db
           .update(memberships)
           .set({
@@ -37,6 +46,10 @@ export class TelegramAuthService {
     } catch (e) {
       console.error('Error saving pendingLinkToken to DB:', e);
     }
+  }
+
+  async persistToken(workspaceId: string, userId: string, code: string, expiresAt?: number) {
+    await this.persistTokenToDb(workspaceId, userId, code, expiresAt || (Date.now() + 15 * 60 * 1000));
   }
 
   /**
@@ -58,6 +71,12 @@ export class TelegramAuthService {
     return code;
   }
 
+  async generateLinkingTokenAsync(workspaceId: string, userId: string): Promise<string> {
+    const code = this.generateLinkingToken(workspaceId, userId);
+    await this.persistToken(workspaceId, userId, code);
+    return code;
+  }
+
   /**
    * Binds a Telegram user and chat ID to a workspace membership using the one-time code
    */
@@ -69,15 +88,18 @@ export class TelegramAuthService {
       try {
         const allMembers = await this.db.select().from(memberships);
         targetMembership = allMembers.find((m: any) => {
-          const perms = m.permissionsJson || {};
+          const rawPerms = m.permissionsJson ?? m.permissions_json ?? {};
+          const perms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
           return perms.pendingLinkToken?.code === code;
         });
         if (targetMembership) {
-          const pt = targetMembership.permissionsJson.pendingLinkToken;
+          const rawPerms = targetMembership.permissionsJson ?? targetMembership.permissions_json ?? {};
+          const perms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
+          const pt = perms.pendingLinkToken;
           token = {
             code: pt.code,
-            workspaceId: targetMembership.workspaceId,
-            userId: targetMembership.userId,
+            workspaceId: targetMembership.workspaceId || targetMembership.workspace_id,
+            userId: targetMembership.userId || targetMembership.user_id,
             expiresAt: pt.expiresAt,
           };
         }
@@ -104,13 +126,17 @@ export class TelegramAuthService {
       .where(and(eq(memberships.workspaceId, token.workspaceId), eq(memberships.userId, token.userId)))
       .limit(1);
 
-    if (!membership) {
+    const target = membership || targetMembership;
+
+    if (!target) {
       throw new Error(`Membership not found for user ${token.userId} in workspace ${token.workspaceId}`);
     }
 
-    const currentPerms = (membership.permissionsJson as Record<string, any>) || {};
+    const rawCurrentPerms = target.permissionsJson ?? target.permissions_json ?? {};
+    const currentPerms = typeof rawCurrentPerms === 'string' ? JSON.parse(rawCurrentPerms) : rawCurrentPerms;
+    const { pendingLinkToken, ...cleanPerms } = currentPerms;
     const updatedPerms = {
-      ...currentPerms,
+      ...cleanPerms,
       telegram: {
         chatId: telegramChatId,
         userId: telegramUserId,
@@ -124,7 +150,7 @@ export class TelegramAuthService {
       .set({
         permissionsJson: updatedPerms,
       })
-      .where(eq(memberships.id, membership.id));
+      .where(eq(memberships.id, target.id));
 
     // Append audit event
     await this.db.insert(events).values({
@@ -154,11 +180,12 @@ export class TelegramAuthService {
     const allMemberships = await this.db.select().from(memberships);
 
     for (const m of allMemberships) {
-      const perms = (m.permissionsJson as Record<string, any>) || {};
+      const rawPerms = m.permissionsJson ?? m.permissions_json ?? {};
+      const perms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
       if (perms.telegram && String(perms.telegram.userId) === String(telegramUserId)) {
         return {
-          workspaceId: m.workspaceId,
-          userId: m.userId,
+          workspaceId: m.workspaceId || m.workspace_id,
+          userId: m.userId || m.user_id,
           role: m.role,
           chatId: perms.telegram.chatId,
         };
