@@ -60,13 +60,35 @@ export async function POST(req: Request) {
 
     const authService = new TelegramAuthService(db);
     const code = await authService.generateLinkingToken(workspaceId, userId);
-    const botHandle = process.env.TELEGRAM_BOT_HANDLE || 'RelationshipAgentBot';
+    
+    const botToken = process.env.TELEGRAM_BOT_TOKEN;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://tbconnect-sales-production.up.railway.app';
+    let botHandle = process.env.TELEGRAM_BOT_HANDLE || 'RelationshipAgentBot';
+
+    if (botToken) {
+      try {
+        // 1. Auto-fetch bot's exact username from Telegram
+        const meRes = await fetch(`https://api.telegram.org/bot${botToken}/getMe`);
+        const meData = await meRes.json();
+        if (meData.ok && meData.result?.username) {
+          botHandle = meData.result.username;
+        }
+
+        // 2. Auto-register webhook with Telegram
+        const webhookUrl = `${appUrl}/api/webhooks/telegram`;
+        await fetch(`https://api.telegram.org/bot${botToken}/setWebhook?url=${encodeURIComponent(webhookUrl)}`);
+      } catch (err) {
+        console.error('Error auto-configuring Telegram webhook:', err);
+      }
+    }
+
     const linkUrl = `https://t.me/${botHandle}?start=${code}`;
 
     return NextResponse.json({
       success: true,
       code,
       linkUrl,
+      botHandle,
       expiresInMinutes: 15,
     });
   } catch (error: any) {
