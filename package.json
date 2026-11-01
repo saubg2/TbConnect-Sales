@@ -14,10 +14,13 @@
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.2.14",
+    "@types/mailparser": "^3.9.0",
     "clsx": "^2.1.1",
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.38.3",
+    "imapflow": "^2.10.0",
     "lucide-react": "^0.469.0",
+    "mailparser": "^3.14.1",
     "next": "^14.2.23",
     "postgres": "^3.4.5",
     "react": "^18.3.1",

@@ -320,6 +320,17 @@ export class ActionWorker {
    * Runs one full execution cycle claiming and processing due actions up to maxBatch
    */
   async runWorkerCycle(workspaceId: string, maxBatch = 10): Promise<WorkerCycleResult> {
+    // 0. Auto-sync Hostinger IMAP inbox if configured
+    try {
+      if (process.env.IMAP_PASSWORD || process.env.IMAP_PASS) {
+        const { HostingerImapListener } = await import('@/providers/email/imap-listener');
+        const listener = new HostingerImapListener(undefined, this.db);
+        await listener.syncInbox(workspaceId);
+      }
+    } catch (imapErr) {
+      console.error('Non-blocking IMAP sync error during worker cycle:', imapErr);
+    }
+
     const summary: WorkerCycleResult = {
       claimedCount: 0,
       completedCount: 0,
