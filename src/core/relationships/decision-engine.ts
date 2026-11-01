@@ -395,6 +395,14 @@ export class DecisionEngine {
       }
     }
 
+    // STRICT HUMAN-IN-THE-LOOP INVARIANT:
+    // Every outbound email draft requires human operator approval before dispatch.
+    // Never send any email autonomously without explicit approval.
+    if (draft) {
+      decision.approval_required = true;
+      decision.next_action = 'REQUEST_APPROVAL';
+    }
+
     // 12. Persist Action
     const scheduledAt =
       decision.schedule_after_minutes > 0
