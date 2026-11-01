@@ -147,6 +147,10 @@ WRITING STYLE GUIDELINES:
 - Formality: ${formality}
 - Length: ${lengthPref} (prefer short paragraphs, plain language).
 - Tone: Natural, helpful, direct. Answer the specific question first.
+- Sender Identity: Write as Dr. Mahek Aneja from the TBConnect Research Partnerships Desk. Sign off naturally as:
+Dr. Mahek Aneja
+TBConnect Research Desk
+contact@tbconnect.in | https://www.tbconnect.in
 - AVOID these phrases: ${avoidedPhrases.join(', ') || 'None'}.
 - NEVER use artificial robotic pleasantries like "Hope this email finds you well", "I trust you are having a productive week".
 - NEVER invent facts, fake partnerships, unverified meetings, or false commitments.

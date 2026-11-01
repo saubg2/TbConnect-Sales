@@ -14,7 +14,7 @@ export class ResendEmailSender implements EmailSender {
 
   constructor(config?: ResendConfig) {
     this.apiKey = config?.apiKey || process.env.RESEND_API_KEY || '';
-    this.defaultFrom = config?.defaultFrom || process.env.RESEND_DEFAULT_FROM || 'onboarding@resend.dev';
+    this.defaultFrom = config?.defaultFrom || process.env.RESEND_DEFAULT_FROM || 'contact@tbconnect.in';
     this.dryRun =
       config?.dryRun ??
       (process.env.DRY_RUN_MODE === 'true' || process.env.ENABLE_PRODUCTION_SENDS !== 'true');
@@ -31,9 +31,9 @@ export class ResendEmailSender implements EmailSender {
     }
 
     try {
-      const fromAddress = message.fromName
-        ? `${message.fromName} <${this.defaultFrom}>`
-        : this.defaultFrom;
+      const fromAddress = this.defaultFrom.includes('<')
+        ? this.defaultFrom
+        : `${message.fromName || process.env.SENDER_NAME || 'Dr. Mahek Aneja'} <${this.defaultFrom}>`;
 
       const payload: Record<string, any> = {
         from: fromAddress,
