@@ -1,0 +1,148 @@
+import { events } from '@/db/schema';
+
+export interface TelegramConfig {
+  botToken?: string;
+  appUrl?: string;
+}
+
+export class TelegramBotService {
+  private botToken: string;
+  private appUrl: string;
+
+  constructor(config?: TelegramConfig, private db?: any) {
+    this.botToken = config?.botToken || process.env.TELEGRAM_BOT_TOKEN || '';
+    this.appUrl = config?.appUrl || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000';
+  }
+
+  private async callApi(endpoint: string, payload: any) {
+    if (!this.botToken) {
+      return { ok: false, description: 'Telegram bot token not configured' };
+    }
+
+    try {
+      const res = await fetch(`https://api.telegram.org/bot${this.botToken}/${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      return await res.json();
+    } catch (err: any) {
+      if (this.db) {
+        try {
+          await this.db.insert(events).values({
+            id: crypto.randomUUID(),
+            workspaceId: 'ws_default',
+            eventType: 'TELEGRAM_API_ERROR',
+            payloadJson: { endpoint, error: err.message },
+            createdAt: new Date(),
+          });
+        } catch {}
+      }
+      return { ok: false, description: err.message };
+    }
+  }
+
+  /**
+   * Sends an approval alert with inline action buttons to an authorized operator
+   */
+  async sendApprovalAlert(
+    chatId: string,
+    params: {
+      actionId: string;
+      draftVersion: number;
+      contactName: string;
+      recipientEmail: string;
+      subject: string;
+      bodyText: string;
+      reason: string;
+    }
+  ) {
+    const text = `🔔 *Approval Required*
+
+*Contact:* ${params.contactName} (${params.recipientEmail})
+*Reason:* ${params.reason}
+*Draft v${params.draftVersion}:*
+*Subject:* ${params.subject}
+
+\`\`\`
+${params.bodyText.length > 300 ? params.bodyText.substring(0, 300) + '...' : params.bodyText}
+\`\`\``;
+
+    const editUrl = `${this.appUrl}/actions?edit=${params.actionId}`;
+
+    const inlineKeyboard = [
+      [
+        {
+          text: '✅ Approve',
+          callback_data: `appr:${params.actionId}:${params.draftVersion}`,
+        },
+        {
+          text: '❌ Reject',
+          callback_data: `rejc:${params.actionId}:${params.draftVersion}`,
+        },
+      ],
+      [
+        {
+          text: '📝 Open in Web to Edit',
+          url: editUrl,
+        },
+      ],
+    ];
+
+    return await this.callApi('sendMessage', {
+      chat_id: chatId,
+      text,
+      parse_mode: 'Markdown',
+      reply_markup: { inline_keyboard: inlineKeyboard },
+    });
+  }
+
+  /**
+   * Sends an alert when a substantive inbound reply is received
+   */
+  async sendInboundAlert(
+    chatId: string,
+    params: {
+      fromName: string;
+      fromEmail: string;
+      subject: string;
+      summary: string;
+    }
+  ) {
+    const text = `📥 *New Inbound Reply*
+
+*From:* ${params.fromName} (${params.fromEmail})
+*Subject:* ${params.subject}
+*Summary:* ${params.summary}`;
+
+    return await this.callApi('sendMessage', {
+      chat_id: chatId,
+      text,
+      parse_mode: 'Markdown',
+    });
+  }
+
+  /**
+   * Responds to inline button press with toast notification
+   */
+  async answerCallbackQuery(callbackQueryId: string, text: string, showAlert = false) {
+    return await this.callApi('answerCallbackQuery', {
+      callback_query_id: callbackQueryId,
+      text,
+      show_alert: showAlert,
+    });
+  }
+
+  /**
+   * Updates message inline keyboard to reflect single-use decision state
+   */
+  async updateMessageStatus(chatId: string, messageId: number, statusText: string) {
+    return await this.callApi('editMessageReplyMarkup', {
+      chat_id: chatId,
+      message_id: messageId,
+      reply_markup: {
+        inline_keyboard: [[{ text: statusText, callback_data: 'noop' }]],
+      },
+    });
+  }
+}

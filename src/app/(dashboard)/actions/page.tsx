@@ -135,6 +135,10 @@ export default function ActionsPage() {
             Inbox
           </Link>
           <span className="text-slate-700">|</span>
+          <Link href="/settings" className="text-xs text-slate-400 hover:text-slate-200 transition">
+            Settings
+          </Link>
+          <span className="text-slate-700">|</span>
           <div className="flex items-center gap-2">
             <ListChecks className="w-4 h-4 text-indigo-400" />
             <h1 className="text-base font-bold text-white">Durable Actions & Approvals</h1>
