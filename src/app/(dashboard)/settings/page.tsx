@@ -30,9 +30,10 @@ export default function SettingsPage() {
   // Emergency Stop State
   const [emergencyActive, setEmergencyActive] = useState<boolean>(false);
   const [emergencyLoading, setEmergencyLoading] = useState(false);
+  const [testLoading, setTestLoading] = useState(false);
+  const [testResult, setTestResult] = useState<string | null>(null);
 
   const fetchSettings = async () => {
-    setLoading(true);
     try {
       // 1. Fetch Telegram operators & members
       const res = await fetch('/api/settings/telegram-link?workspaceId=ws_default');
@@ -49,14 +50,35 @@ export default function SettingsPage() {
       }
     } catch (e) {
       console.error(e);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchSettings();
+    const interval = setInterval(fetchSettings, 3000);
+    return () => clearInterval(interval);
   }, []);
+
+  const sendTestAlert = async () => {
+    setTestLoading(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/settings/telegram-test?workspaceId=ws_default', {
+        method: 'POST',
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTestResult('✅ Test alert sent to Telegram!');
+      } else {
+        setTestResult(`⚠️ ${data.error || 'Failed to send test alert'}`);
+      }
+    } catch (e: any) {
+      setTestResult(`⚠️ ${e.message}`);
+    } finally {
+      setTestLoading(false);
+      setTimeout(() => setTestResult(null), 5000);
+    }
+  };
 
   const generateTelegramLink = async () => {
     setLinkingLoading(true);
@@ -183,14 +205,31 @@ export default function SettingsPage() {
                 </p>
               </div>
             </div>
-            <button
-              onClick={generateTelegramLink}
-              disabled={linkingLoading}
-              className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shrink-0 shadow transition"
-            >
-              {linkingLoading ? 'Generating...' : 'Generate 1-Time Link Token'}
-            </button>
+            <div className="flex items-center gap-2 shrink-0">
+              {members.some((m) => m.telegramLinked) && (
+                <button
+                  onClick={sendTestAlert}
+                  disabled={testLoading}
+                  className="px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition"
+                >
+                  {testLoading ? 'Sending...' : 'Send Test Alert'}
+                </button>
+              )}
+              <button
+                onClick={generateTelegramLink}
+                disabled={linkingLoading}
+                className="px-4 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold shadow transition"
+              >
+                {linkingLoading ? 'Generating...' : 'Generate 1-Time Link Token'}
+              </button>
+            </div>
           </div>
+
+          {testResult && (
+            <div className="p-3 rounded-lg bg-slate-100 border border-slate-300 text-xs font-bold text-slate-800">
+              {testResult}
+            </div>
+          )}
 
           {/* Linking Modal Box */}
           {linkingResult && (

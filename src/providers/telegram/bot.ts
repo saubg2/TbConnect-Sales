@@ -5,6 +5,13 @@ export interface TelegramConfig {
   appUrl?: string;
 }
 
+function escapeHtml(str: string): string {
+  return (str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 export class TelegramBotService {
   private botToken: string;
   private appUrl: string;
@@ -25,7 +32,22 @@ export class TelegramBotService {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
-      return await res.json();
+      const data = await res.json();
+      if (!data.ok) {
+        console.error(`Telegram API error on ${endpoint}:`, data);
+        if (this.db) {
+          try {
+            await this.db.insert(events).values({
+              id: crypto.randomUUID(),
+              workspaceId: 'ws_default',
+              eventType: 'TELEGRAM_API_ERROR',
+              payloadJson: { endpoint, payload, response: data },
+              createdAt: new Date(),
+            });
+          } catch {}
+        }
+      }
+      return data;
     } catch (err: any) {
       if (this.db) {
         try {
@@ -57,16 +79,15 @@ export class TelegramBotService {
       reason: string;
     }
   ) {
-    const text = `🔔 *Approval Required*
+    const preview = params.bodyText.length > 300 ? params.bodyText.substring(0, 300) + '...' : params.bodyText;
+    const text = `🔔 <b>Approval Required</b>
 
-*Contact:* ${params.contactName} (${params.recipientEmail})
-*Reason:* ${params.reason}
-*Draft v${params.draftVersion}:*
-*Subject:* ${params.subject}
+<b>Contact:</b> ${escapeHtml(params.contactName)} (${escapeHtml(params.recipientEmail)})
+<b>Reason:</b> ${escapeHtml(params.reason)}
+<b>Draft v${params.draftVersion}:</b>
+<b>Subject:</b> ${escapeHtml(params.subject)}
 
-\`\`\`
-${params.bodyText.length > 300 ? params.bodyText.substring(0, 300) + '...' : params.bodyText}
-\`\`\``;
+<pre>${escapeHtml(preview)}</pre>`;
 
     const editUrl = `${this.appUrl}/actions?edit=${params.actionId}`;
 
@@ -92,7 +113,7 @@ ${params.bodyText.length > 300 ? params.bodyText.substring(0, 300) + '...' : par
     return await this.callApi('sendMessage', {
       chat_id: chatId,
       text,
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
       reply_markup: { inline_keyboard: inlineKeyboard },
     });
   }
@@ -109,16 +130,16 @@ ${params.bodyText.length > 300 ? params.bodyText.substring(0, 300) + '...' : par
       summary: string;
     }
   ) {
-    const text = `📥 *New Inbound Reply*
+    const text = `📥 <b>New Inbound Reply</b>
 
-*From:* ${params.fromName} (${params.fromEmail})
-*Subject:* ${params.subject}
-*Summary:* ${params.summary}`;
+<b>From:</b> ${escapeHtml(params.fromName)} (${escapeHtml(params.fromEmail)})
+<b>Subject:</b> ${escapeHtml(params.subject)}
+<b>Summary:</b> ${escapeHtml(params.summary)}`;
 
     return await this.callApi('sendMessage', {
       chat_id: chatId,
       text,
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
     });
   }
 
