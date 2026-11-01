@@ -106,11 +106,15 @@ export default function SettingsPage() {
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-xs text-slate-400 hover:text-slate-200 transition">
-            ← Dev Harness
+            ← Home
           </Link>
           <span className="text-slate-700">|</span>
           <Link href="/contacts" className="text-xs text-slate-400 hover:text-slate-200 transition">
             Contacts
+          </Link>
+          <span className="text-slate-700">|</span>
+          <Link href="/agents" className="text-xs text-slate-400 hover:text-slate-200 transition">
+            Agents
           </Link>
           <span className="text-slate-700">|</span>
           <Link href="/inbox" className="text-xs text-slate-400 hover:text-slate-200 transition">
@@ -123,7 +127,7 @@ export default function SettingsPage() {
           <span className="text-slate-700">|</span>
           <div className="flex items-center gap-2">
             <Settings className="w-4 h-4 text-indigo-400" />
-            <h1 className="text-base font-bold text-white">Workspace Settings</h1>
+            <h1 className="text-base font-bold text-white">Settings</h1>
           </div>
         </div>
 

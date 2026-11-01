@@ -144,7 +144,16 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
       <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Link href="/" className="text-xs text-slate-400 hover:text-slate-200 transition">
-            ← Dev Harness
+            ← Home
+          </Link>
+          <span className="text-slate-700">|</span>
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-indigo-400" />
+            <h1 className="text-base font-bold text-white">Contacts</h1>
+          </div>
+          <span className="text-slate-700">|</span>
+          <Link href="/agents" className="text-xs text-slate-400 hover:text-slate-200 transition">
+            Agents
           </Link>
           <span className="text-slate-700">|</span>
           <Link href="/inbox" className="text-xs text-slate-400 hover:text-slate-200 transition">
@@ -155,10 +164,9 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
             Actions
           </Link>
           <span className="text-slate-700">|</span>
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-indigo-400" />
-            <h1 className="text-base font-bold text-white">Contacts & Relationships</h1>
-          </div>
+          <Link href="/settings" className="text-xs text-slate-400 hover:text-slate-200 transition">
+            Settings
+          </Link>
           <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700">
             {contacts.length} Records
           </span>

@@ -33,3 +33,11 @@ export function getDb() {
   }
   return dbInstance;
 }
+
+export const db: any = new Proxy({} as any, {
+  get(_target, prop) {
+    const instance = getDb();
+    return (instance as any)[prop];
+  },
+});
+

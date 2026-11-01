@@ -121,18 +121,18 @@ export default function DevHarnessPage() {
             Multi-tenant relationship manager with persistent context, structured LLM decisions, and safe-by-default execution.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Link
-            href="/settings"
+            href="/contacts"
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
           >
-            Settings →
+            Contacts →
           </Link>
           <Link
-            href="/actions"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
+            href="/agents"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-700 hover:bg-emerald-600 text-xs font-semibold text-white shadow-sm transition"
           >
-            Actions →
+            Agents →
           </Link>
           <Link
             href="/inbox"
@@ -141,10 +141,16 @@ export default function DevHarnessPage() {
             Inbox →
           </Link>
           <Link
-            href="/contacts"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm transition"
+            href="/actions"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
           >
-            Contacts & Import →
+            Actions →
+          </Link>
+          <Link
+            href="/settings"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-200 border border-slate-700 transition"
+          >
+            Settings →
           </Link>
           <button
             onClick={fetchData}
