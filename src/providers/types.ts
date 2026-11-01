@@ -30,9 +30,9 @@ export const AgentDecisionSchema = z.object({
   reason: z.string().min(1, 'Reason is required'),
   draft_required: z.boolean(),
   approval_required: z.boolean(),
-  schedule_after_minutes: z.number().int().min(0).default(0),
-  new_facts: z.array(z.string()).default([]),
-  open_questions: z.array(z.string()).default([]),
+  schedule_after_minutes: z.number().int().min(0).nullable().optional().transform((val) => val ?? 0),
+  new_facts: z.preprocess((val) => val ?? [], z.array(z.string()).default([])),
+  open_questions: z.preprocess((val) => val ?? [], z.array(z.string()).default([])),
 });
 export type AgentDecision = z.infer<typeof AgentDecisionSchema>;
 
