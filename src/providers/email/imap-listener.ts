@@ -59,12 +59,14 @@ export class HostingerImapListener {
         // Fetch unseen messages
         for await (const message of client.fetch({ seen: false }, { source: true, uid: true, envelope: true })) {
           try {
+            if (!message.source) continue;
             const parsed = await simpleParser(message.source);
 
             const fromAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || '';
             const fromName = parsed.from?.value?.[0]?.name || '';
             const subject = parsed.subject || '';
-            const bodyText = parsed.text || parsed.html?.replace(/<[^>]+>/g, ' ') || '';
+            const htmlText = typeof parsed.html === 'string' ? parsed.html.replace(/<[^>]+>/g, ' ') : '';
+            const bodyText = parsed.text || htmlText || '';
             const messageId = parsed.messageId || `imap_${message.uid}`;
 
             if (fromAddress && fromAddress !== this.user.toLowerCase()) {
