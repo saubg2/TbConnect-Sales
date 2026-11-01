@@ -24,6 +24,8 @@ export default function ActionsPage() {
   const [emergencyLoading, setEmergencyLoading] = useState(false);
   const [workerLoading, setWorkerLoading] = useState(false);
   const [workerResult, setWorkerResult] = useState<any>(null);
+  const [telegramLoading, setTelegramLoading] = useState(false);
+  const [telegramNotice, setTelegramNotice] = useState<string | null>(null);
 
   // Edit draft state
   const [editActionId, setEditActionId] = useState<string | null>(null);
@@ -101,6 +103,32 @@ export default function ActionsPage() {
     }
   };
 
+  const notifyTelegram = async () => {
+    setTelegramLoading(true);
+    setTelegramNotice(null);
+    try {
+      const res = await fetch('/api/actions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          workspaceId: 'ws_default',
+          action: 'notify_telegram',
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTelegramNotice(`✅ Sent ${data.sentCount} approval cards to Telegram!`);
+      } else {
+        setTelegramNotice(`⚠️ ${data.error || 'Failed to notify'}`);
+      }
+    } catch (e: any) {
+      setTelegramNotice(`⚠️ ${e.message}`);
+    } finally {
+      setTelegramLoading(false);
+      setTimeout(() => setTelegramNotice(null), 6000);
+    }
+  };
+
   const handleAction = async (actionId: string, actionType: 'approve' | 'reject' | 'edit', extra: any = {}) => {
     try {
       await fetch('/api/actions', {
@@ -166,6 +194,16 @@ export default function ActionsPage() {
             {emergencyActive ? 'Resume Workspace Sends' : 'Emergency Stop'}
           </button>
 
+          {/* Push to Telegram Button */}
+          <button
+            onClick={notifyTelegram}
+            disabled={telegramLoading}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold shadow-sm transition border-2 border-sky-700 disabled:opacity-50"
+          >
+            <Send className={`w-4 h-4 ${telegramLoading ? 'animate-spin' : ''}`} />
+            {telegramLoading ? 'Sending...' : 'Send to Telegram'}
+          </button>
+
           {/* Trigger Worker Button */}
           <button
             onClick={runWorkerCycle}
@@ -188,6 +226,11 @@ export default function ActionsPage() {
 
       {/* Main Container */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
+        {telegramNotice && (
+          <div className="p-4 rounded-xl border-2 border-sky-400 bg-sky-50 text-sky-950 font-bold text-sm shadow-sm">
+            {telegramNotice}
+          </div>
+        )}
         {/* Emergency Stop Alert Banner */}
         {emergencyActive && (
           <div className="p-4 rounded-xl border-2 border-rose-400 bg-rose-50 flex items-center justify-between text-sm text-rose-950 shadow-sm">

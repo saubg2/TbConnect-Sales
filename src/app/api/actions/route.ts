@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getDbAsync } from '@/db/client';
-import { actions } from '@/db/schema';
+import { actions, memberships, relationships, contacts } from '@/db/schema';
 import { eq, and, desc } from 'drizzle-orm';
 import { ActionWorker } from '@/jobs/action-worker';
 import { MockEmailProvider } from '@/providers/email/mock';
 import { ActionService } from '@/core/actions/service';
+import { TelegramBotService } from '@/providers/telegram/bot';
+import { TelegramAuthService } from '@/providers/telegram/auth';
 
 export async function GET(req: Request) {
   try {
@@ -41,6 +43,60 @@ export async function POST(req: Request) {
       const worker = new ActionWorker(db, { emailSender: mockEmail });
       const summary = await worker.runWorkerCycle(workspaceId);
       return NextResponse.json({ success: true, summary });
+    }
+
+    // Push pending approval alerts to Telegram
+    if (body.action === 'notify_telegram') {
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      const botService = new TelegramBotService({ botToken }, db);
+
+      const allMembers = await db.select().from(memberships).where(eq(memberships.workspaceId, workspaceId));
+      const linkedMember = allMembers.find((m: any) => {
+        const rawPerms = m.permissionsJson ?? m.permissions_json ?? {};
+        const perms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
+        return !!perms.telegram?.chatId;
+      });
+
+      if (!linkedMember) {
+        return NextResponse.json({ error: 'No Telegram account linked' }, { status: 400 });
+      }
+
+      const rawPerms = linkedMember.permissionsJson ?? linkedMember.permissions_json ?? {};
+      const perms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
+      const chatId = perms.telegram.chatId;
+
+      const pendingActions = await db
+        .select()
+        .from(actions)
+        .where(and(eq(actions.workspaceId, workspaceId), eq(actions.status, 'AWAITING_APPROVAL')));
+
+      let sentCount = 0;
+      for (const act of pendingActions) {
+        const payload = (act.payloadJson as Record<string, any>) || {};
+        const [rel] = await db.select().from(relationships).where(eq(relationships.id, act.relationshipId)).limit(1);
+        let contactName = 'Researcher';
+        let contactEmail = 'lead@university.edu';
+        if (rel) {
+          const [cnt] = await db.select().from(contacts).where(eq(contacts.id, rel.contactId)).limit(1);
+          if (cnt) {
+            contactName = cnt.name;
+            contactEmail = cnt.emailNormalized;
+          }
+        }
+
+        await botService.sendApprovalAlert(chatId, {
+          actionId: act.id,
+          draftVersion: act.approvedDraftVersion || 1,
+          contactName,
+          recipientEmail: contactEmail,
+          subject: payload.subject || 'Digital TST measurement with TBConnect & SmartPatch',
+          bodyText: payload.bodyText || payload.body || '',
+          reason: act.reason || 'Curiosity-driven Cold Outreach',
+        });
+        sentCount++;
+      }
+
+      return NextResponse.json({ success: true, sentCount });
     }
 
     // Standard action transitions
