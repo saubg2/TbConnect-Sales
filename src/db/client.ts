@@ -29,6 +29,15 @@ export function setDb(customDb: any) {
 
 export function getDb() {
   if (!dbInstance) {
+    if (process.env.USE_REAL_POSTGRES === 'true' && process.env.DATABASE_URL) {
+      const client = postgres(process.env.DATABASE_URL, {
+        max: 10,
+        idle_timeout: 20,
+        connect_timeout: 10,
+      });
+      dbInstance = drizzlePg(client, { schema });
+      return dbInstance;
+    }
     throw new Error('Database not initialized. Call await getDbAsync() first.');
   }
   return dbInstance;

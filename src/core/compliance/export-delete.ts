@@ -1,4 +1,4 @@
-import { db } from '@/db/client';
+import { getDbAsync } from '@/db/client';
 import { contacts, relationships, messages, actions, events } from '@/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -23,7 +23,8 @@ export class ComplianceService {
   /**
    * Export all workspace data for portability & backup compliance
    */
-  static async exportWorkspaceData(workspaceId: string): Promise<WorkspaceExportData> {
+  static async exportWorkspaceData(workspaceId: string, customDb?: any): Promise<WorkspaceExportData> {
+    const db = customDb || (await getDbAsync());
     const [cList, rList, mList, aList, eList] = await Promise.all([
       db.select().from(contacts).where(eq(contacts.workspaceId, workspaceId)),
       db.select().from(relationships).where(eq(relationships.workspaceId, workspaceId)),
@@ -53,7 +54,13 @@ export class ComplianceService {
   /**
    * Erase a contact and their associated relationships, messages, and actions (Right to be Forgotten)
    */
-  static async deleteContactData(workspaceId: string, contactId: string, actorId = 'system'): Promise<{ success: boolean; erasedId: string }> {
+  static async deleteContactData(
+    workspaceId: string,
+    contactId: string,
+    actorId = 'system',
+    customDb?: any
+  ): Promise<{ success: boolean; erasedId: string }> {
+    const db = customDb || (await getDbAsync());
     // Record privacy audit event before deletion
     await db.insert(events).values({
       workspaceId,

@@ -1,5 +1,5 @@
-import { db } from '@/db/client';
-import { agents, events } from '@/db/schema';
+import { getDbAsync } from '@/db/client';
+import { agents, events, workspaces } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
 
 export interface UpdateAgentInput {
@@ -26,16 +26,62 @@ export interface UpdateAgentInput {
 
 export class AgentService {
   /**
-   * List all agents for a workspace
+   * List all agents for a workspace. If none exist, auto-seeds default Sarah agent.
    */
-  static async listAgents(workspaceId: string) {
-    return await db.select().from(agents).where(eq(agents.workspaceId, workspaceId));
+  static async listAgents(workspaceId: string, customDb?: any) {
+    const db = customDb || (await getDbAsync());
+    const existing = await db.select().from(agents).where(eq(agents.workspaceId, workspaceId));
+
+    if (existing.length > 0) {
+      return existing;
+    }
+
+    // Ensure workspace exists before inserting agent
+    const ws = await db.select().from(workspaces).where(eq(workspaces.id, workspaceId)).limit(1);
+    if (ws.length === 0) {
+      await db.insert(workspaces).values({
+        id: workspaceId,
+        name: 'Default Workspace',
+      });
+    }
+
+    // Seed default agent
+    const defaultAgent = await this.createAgent(
+      workspaceId,
+      {
+        name: 'Sarah - Partner Relationships',
+        goal: 'Engage inbound leads and schedule discovery conversations for enterprise partnerships',
+        instructions:
+          'Maintain a warm, professional, and helpful tone. Answer product questions directly using only approved knowledge. Never invent features or make binding commercial pricing commitments.',
+        knowledgeText:
+          'Product: Next-generation B2B relationship orchestration platform. Features: Multi-channel messaging, durable state machines, autonomous decision engine with human approval gates. Integrations: REST API, Webhooks, Resend, Telegram.',
+        voiceJson: {
+          tone: 'professional, warm, direct',
+          maxSentences: 4,
+          avoidPhrases: ['synergy', 'touch base', 'low-hanging fruit', 'circle back'],
+          forbiddenTopics: ['commercial pricing quotes', 'legal commitments', 'unreleased features'],
+        },
+        permissionsJson: {
+          allowCommercialPricing: false,
+          allowContractTerms: false,
+          allowDirectOutreach: true,
+          requireReviewForNewDomains: false,
+        },
+        llmProvider: process.env.LLM_PROVIDER || 'mock',
+        llmModel: process.env.MISTRAL_MODEL || 'ministral-8b-latest',
+      },
+      'system',
+      db
+    );
+
+    return [defaultAgent];
   }
 
   /**
    * Get a specific agent by ID
    */
-  static async getAgent(workspaceId: string, agentId: string) {
+  static async getAgent(workspaceId: string, agentId: string, customDb?: any) {
+    const db = customDb || (await getDbAsync());
     const rows = await db
       .select()
       .from(agents)
@@ -50,9 +96,11 @@ export class AgentService {
     workspaceId: string,
     agentId: string,
     input: UpdateAgentInput,
-    actorId = 'system'
+    actorId = 'system',
+    customDb?: any
   ) {
-    const existing = await this.getAgent(workspaceId, agentId);
+    const db = customDb || (await getDbAsync());
+    const existing = await this.getAgent(workspaceId, agentId, db);
     if (!existing) {
       throw new Error(`Agent ${agentId} not found in workspace ${workspaceId}`);
     }
@@ -109,8 +157,10 @@ export class AgentService {
       llmProvider?: string;
       llmModel?: string;
     },
-    actorId = 'system'
+    actorId = 'system',
+    customDb?: any
   ) {
+    const db = customDb || (await getDbAsync());
     const rows = await db
       .insert(agents)
       .values({
@@ -131,8 +181,8 @@ export class AgentService {
           allowDirectOutreach: true,
           requireReviewForNewDomains: false,
         },
-        llmProvider: input.llmProvider || 'mock',
-        llmModel: input.llmModel || 'mock-agent-v1',
+        llmProvider: input.llmProvider || process.env.LLM_PROVIDER || 'mock',
+        llmModel: input.llmModel || process.env.MISTRAL_MODEL || 'mock-agent-v1',
         isActive: true,
       })
       .returning();

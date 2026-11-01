@@ -1,4 +1,4 @@
-import { db } from '@/db/client';
+import { getDbAsync } from '@/db/client';
 import { events } from '@/db/schema';
 import { eq, and, sql, gte } from 'drizzle-orm';
 
@@ -30,8 +30,10 @@ export class TelemetryService {
   static async recordUsage(
     workspaceId: string,
     record: TelemetryRecord,
-    actorId = 'system'
+    actorId = 'system',
+    customDb?: any
   ): Promise<string> {
+    const db = customDb || (await getDbAsync());
     const rows = await db
       .insert(events)
       .values({
@@ -56,12 +58,16 @@ export class TelemetryService {
   /**
    * Aggregate usage metrics for a workspace over the last 24 hours
    */
-  static async getDailyUsage(workspaceId: string): Promise<{
+  static async getDailyUsage(
+    workspaceId: string,
+    customDb?: any
+  ): Promise<{
     emailSends: number;
     modelTokens: number;
     workerJobs: number;
     totalCostUsd: number;
   }> {
+    const db = customDb || (await getDbAsync());
     const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
 
     const usageEvents = await db
@@ -106,10 +112,11 @@ export class TelemetryService {
     workspaceId: string,
     metric: 'email_sends' | 'model_tokens',
     amount: number = 1,
-    customQuota?: WorkspaceQuota
+    customQuota?: WorkspaceQuota,
+    customDb?: any
   ): Promise<{ allowed: boolean; remaining: number; reason?: string }> {
     const quota = customQuota || DEFAULT_QUOTAS[workspaceId] || DEFAULT_QUOTAS.default;
-    const current = await this.getDailyUsage(workspaceId);
+    const current = await this.getDailyUsage(workspaceId, customDb);
 
     if (metric === 'email_sends') {
       const remaining = quota.maxDailySends - current.emailSends;
