@@ -32,8 +32,8 @@ export async function POST(req: Request) {
         try {
           const linked = await authService.linkTelegramUser(code, chatId, userId, username);
           await botService.sendInboundAlert(chatId, {
-            fromName: 'Antigravity Relationship Agent',
-            fromEmail: 'bot@saas.local',
+            fromName: 'TBConnect Alert Bot',
+            fromEmail: 'contact@tbconnect.in',
             subject: 'Account Linked Successfully',
             summary: `Your Telegram account is now securely linked to Workspace (${linked.workspaceId}). You will receive real-time approval requests and critical alerts here.`,
           });
@@ -41,11 +41,18 @@ export async function POST(req: Request) {
           // Send error notice back to chat
           await botService.sendInboundAlert(chatId, {
             fromName: 'Linking Error',
-            fromEmail: 'bot@saas.local',
+            fromEmail: 'contact@tbconnect.in',
             subject: 'Account Linking Failed',
             summary: err.message || 'Invalid or expired linking token. Please generate a new link in Settings.',
           });
         }
+      } else if (text.startsWith('/start')) {
+        await botService.sendInboundAlert(chatId, {
+          fromName: 'TBConnect Alert Bot',
+          fromEmail: 'contact@tbconnect.in',
+          subject: 'Welcome to TBConnect Outreach Alerts',
+          summary: 'To link your Telegram account to your workspace, please open Settings (https://tbconnect-sales-production.up.railway.app/settings), click "Generate 1-Time Link Token", and open the generated link.',
+        });
       }
 
       return NextResponse.json({ ok: true });

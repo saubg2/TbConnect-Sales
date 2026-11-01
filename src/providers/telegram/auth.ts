@@ -14,17 +14,47 @@ const linkingTokens = new Map<string, TelegramLinkToken>();
 export class TelegramAuthService {
   constructor(private db: any) {}
 
+  private async persistTokenToDb(workspaceId: string, userId: string, code: string, expiresAt: number) {
+    try {
+      const [membership] = await this.db
+        .select()
+        .from(memberships)
+        .where(and(eq(memberships.workspaceId, workspaceId), eq(memberships.userId, userId)))
+        .limit(1);
+
+      if (membership) {
+        const currentPerms = (membership.permissionsJson as Record<string, any>) || {};
+        await this.db
+          .update(memberships)
+          .set({
+            permissionsJson: {
+              ...currentPerms,
+              pendingLinkToken: { code, expiresAt },
+            },
+          })
+          .where(eq(memberships.id, membership.id));
+      }
+    } catch (e) {
+      console.error('Error saving pendingLinkToken to DB:', e);
+    }
+  }
+
   /**
    * Generates a secure, short-lived (15 min) one-time linking token
    */
   generateLinkingToken(workspaceId: string, userId: string): string {
     const code = `link_${crypto.randomUUID().replace(/-/g, '').substring(0, 16)}`;
+    const expiresAt = Date.now() + 15 * 60 * 1000;
+
     linkingTokens.set(code, {
       code,
       workspaceId,
       userId,
-      expiresAt: Date.now() + 15 * 60 * 1000,
+      expiresAt,
     });
+
+    this.persistTokenToDb(workspaceId, userId, code, expiresAt);
+
     return code;
   }
 
@@ -32,7 +62,29 @@ export class TelegramAuthService {
    * Binds a Telegram user and chat ID to a workspace membership using the one-time code
    */
   async linkTelegramUser(code: string, telegramChatId: string, telegramUserId: string, telegramUsername?: string) {
-    const token = linkingTokens.get(code);
+    let token = linkingTokens.get(code);
+
+    let targetMembership: any = null;
+    if (!token) {
+      try {
+        const allMembers = await this.db.select().from(memberships);
+        targetMembership = allMembers.find((m: any) => {
+          const perms = m.permissionsJson || {};
+          return perms.pendingLinkToken?.code === code;
+        });
+        if (targetMembership) {
+          const pt = targetMembership.permissionsJson.pendingLinkToken;
+          token = {
+            code: pt.code,
+            workspaceId: targetMembership.workspaceId,
+            userId: targetMembership.userId,
+            expiresAt: pt.expiresAt,
+          };
+        }
+      } catch (e) {
+        console.error('Error querying token from DB:', e);
+      }
+    }
 
     if (!token) {
       throw new Error('Invalid or expired linking token');

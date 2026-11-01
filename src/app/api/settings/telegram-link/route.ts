@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     }
 
     const authService = new TelegramAuthService(db);
-    const code = authService.generateLinkingToken(workspaceId, userId);
+    const code = await authService.generateLinkingToken(workspaceId, userId);
     const botHandle = process.env.TELEGRAM_BOT_HANDLE || 'RelationshipAgentBot';
     const linkUrl = `https://t.me/${botHandle}?start=${code}`;
 
