@@ -3,17 +3,17 @@
 import React, { useState, useEffect } from 'react';
 import {
   Inbox,
-  Send,
   User,
   Bot,
-  CheckCircle2,
+  Send,
   AlertTriangle,
-  FileEdit,
+  CheckCircle2,
   XCircle,
-  PauseCircle,
+  FileEdit,
+  Clock,
   PlayCircle,
+  PauseCircle,
   RefreshCw,
-  Search,
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -26,8 +26,6 @@ export default function InboxPage() {
 
   const [selectedRelationshipId, setSelectedRelationshipId] = useState<string | null>(null);
   const [manualTakeoverMap, setManualTakeoverMap] = useState<Record<string, boolean>>({});
-
-  // Manual compose state
   const [manualText, setManualText] = useState('');
   const [editActionId, setEditActionId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
@@ -43,7 +41,7 @@ export default function InboxPage() {
         setMessages(data.messages || []);
         setActions(data.actions || []);
 
-        if (!selectedRelationshipId && data.relationships?.length > 0) {
+        if (!selectedRelationshipId && data.relationships && data.relationships.length > 0) {
           setSelectedRelationshipId(data.relationships[0].id);
         }
       }
@@ -60,13 +58,11 @@ export default function InboxPage() {
 
   const selectedRel = relationships.find((r) => r.id === selectedRelationshipId);
   const selectedContact = selectedRel ? contacts.find((c) => c.id === selectedRel.contactId) : null;
-  const relMessages = messages
-    .filter((m) => m.relationshipId === selectedRelationshipId)
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
-
-  const currentAction = actions.find(
-    (a) => a.relationshipId === selectedRelationshipId && (a.status === 'AWAITING_APPROVAL' || a.status === 'PENDING')
-  );
+  const relMessages = selectedRelationshipId
+    ? messages
+        .filter((m) => m.relationshipId === selectedRelationshipId)
+        .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+    : [];
 
   const isTakeover = selectedRelationshipId ? !!manualTakeoverMap[selectedRelationshipId] : false;
 
@@ -76,6 +72,10 @@ export default function InboxPage() {
       [relId]: !prev[relId],
     }));
   };
+
+  const currentAction = actions.find(
+    (a) => a.relationshipId === selectedRelationshipId && (a.status === 'AWAITING_APPROVAL' || a.status === 'WAITING' || a.status === 'PENDING')
+  );
 
   const handleAction = async (actionId: string, verb: 'approve' | 'reject' | 'edit', extraPayload?: any) => {
     try {
@@ -117,32 +117,32 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-slate-900/60 backdrop-blur sticky top-0 z-10 px-6 py-4 flex items-center justify-between">
+      <header className="border-b border-slate-200 bg-white sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          <Link href="/" className="text-xs text-slate-400 hover:text-slate-200 transition">
+          <Link href="/" className="text-xs text-slate-500 hover:text-slate-900 transition">
             ← Home
           </Link>
-          <span className="text-slate-700">|</span>
-          <Link href="/contacts" className="text-xs text-slate-400 hover:text-slate-200 transition">
+          <span className="text-slate-300">|</span>
+          <Link href="/contacts" className="text-xs text-slate-500 hover:text-slate-900 transition">
             Contacts
           </Link>
-          <span className="text-slate-700">|</span>
-          <Link href="/agents" className="text-xs text-slate-400 hover:text-slate-200 transition">
+          <span className="text-slate-300">|</span>
+          <Link href="/agents" className="text-xs text-slate-500 hover:text-slate-900 transition">
             Agents
           </Link>
-          <span className="text-slate-700">|</span>
+          <span className="text-slate-300">|</span>
           <div className="flex items-center gap-2">
-            <Inbox className="w-4 h-4 text-indigo-400" />
-            <h1 className="text-base font-bold text-white">Inbox</h1>
+            <Inbox className="w-4 h-4 text-indigo-600" />
+            <h1 className="text-base font-bold text-slate-900">Inbox</h1>
           </div>
-          <span className="text-slate-700">|</span>
-          <Link href="/actions" className="text-xs text-slate-400 hover:text-slate-200 transition">
+          <span className="text-slate-300">|</span>
+          <Link href="/actions" className="text-xs text-slate-500 hover:text-slate-900 transition">
             Actions
           </Link>
-          <span className="text-slate-700">|</span>
-          <Link href="/settings" className="text-xs text-slate-400 hover:text-slate-200 transition">
+          <span className="text-slate-300">|</span>
+          <Link href="/settings" className="text-xs text-slate-500 hover:text-slate-900 transition">
             Settings
           </Link>
         </div>
@@ -150,7 +150,7 @@ export default function InboxPage() {
         <button
           onClick={fetchInboxData}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-slate-800 hover:bg-slate-700 text-xs font-medium text-slate-200 border border-slate-700 transition"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 border border-slate-200 shadow-sm transition"
         >
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
           Refresh
@@ -160,14 +160,14 @@ export default function InboxPage() {
       {/* Inbox Split View */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Thread List */}
-        <aside className="w-80 border-r border-slate-800 bg-slate-900/30 flex flex-col">
-          <div className="p-3 border-b border-slate-800">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+        <aside className="w-80 border-r border-slate-200 bg-white flex flex-col shadow-sm">
+          <div className="p-3.5 border-b border-slate-100 bg-slate-50">
+            <div className="text-xs font-semibold text-slate-600 uppercase tracking-wider">
               Conversations ({relationships.length})
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto divide-y divide-slate-800/60">
+          <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
             {relationships.length === 0 ? (
               <div className="p-6 text-center text-xs text-slate-500">
                 No active conversations yet.
@@ -187,35 +187,35 @@ export default function InboxPage() {
                     onClick={() => setSelectedRelationshipId(rel.id)}
                     className={`p-3.5 cursor-pointer transition flex flex-col gap-1.5 ${
                       isSelected
-                        ? 'bg-slate-800/70 border-l-2 border-indigo-500'
-                        : 'hover:bg-slate-800/30'
+                        ? 'bg-indigo-50/80 border-l-2 border-indigo-600'
+                        : 'hover:bg-slate-50'
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-slate-200 truncate">
+                      <span className="font-semibold text-xs text-slate-900 truncate">
                         {contact?.name || 'Contact'}
                       </span>
-                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-semibold ${
-                        rel.stage === 'ENGAGED' ? 'bg-emerald-950 text-emerald-400 border border-emerald-800' :
-                        rel.stage === 'OPTED_OUT' ? 'bg-rose-950 text-rose-400 border border-rose-800' :
-                        'bg-slate-800 text-slate-400'
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-semibold ${
+                        rel.stage === 'ENGAGED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                        rel.stage === 'OPTED_OUT' ? 'bg-rose-50 text-rose-700 border border-rose-200' :
+                        'bg-slate-100 text-slate-700'
                       }`}>
                         {rel.stage}
                       </span>
                     </div>
 
-                    <div className="text-[11px] text-slate-400 truncate">
+                    <div className="text-[11px] text-slate-500 truncate">
                       {contact?.emailNormalized}
                     </div>
 
                     <div className="flex items-center gap-1.5 text-[10px] text-slate-500 pt-0.5">
                       {hasTakeover && (
-                        <span className="px-1.5 py-0.2 rounded bg-amber-950 text-amber-400 border border-amber-800">
+                        <span className="px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 font-medium">
                           Takeover
                         </span>
                       )}
                       {relAction && (
-                        <span className="px-1.5 py-0.2 rounded bg-blue-950 text-blue-400 border border-blue-800 animate-pulse">
+                        <span className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 font-semibold animate-pulse">
                           Approval Due
                         </span>
                       )}
@@ -229,20 +229,20 @@ export default function InboxPage() {
 
         {/* Right Active Conversation Pane */}
         {selectedRel && selectedContact ? (
-          <main className="flex-1 flex flex-col bg-slate-950 overflow-hidden">
+          <main className="flex-1 flex flex-col bg-slate-50 overflow-hidden">
             {/* Thread Header */}
-            <div className="p-4 border-b border-slate-800 bg-slate-900/40 flex items-center justify-between">
+            <div className="p-4 border-b border-slate-200 bg-white flex items-center justify-between shadow-sm">
               <div>
                 <div className="flex items-center gap-2">
-                  <h2 className="text-sm font-bold text-white">{selectedContact.name}</h2>
-                  <span className="text-xs text-slate-400">({selectedContact.emailNormalized})</span>
+                  <h2 className="text-sm font-bold text-slate-900">{selectedContact.name}</h2>
+                  <span className="text-xs text-slate-500">({selectedContact.emailNormalized})</span>
                   {selectedContact.isSuppressed && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-950 text-rose-400 border border-rose-800">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-rose-50 text-rose-700 border border-rose-200">
                       Suppressed
                     </span>
                   )}
                 </div>
-                <div className="text-xs text-slate-400">
+                <div className="text-xs text-slate-500">
                   {selectedContact.organisation || 'Independent'} • {selectedContact.country || 'Global'}
                 </div>
               </div>
@@ -251,20 +251,20 @@ export default function InboxPage() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => toggleTakeover(selectedRel.id)}
-                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition border ${
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition border shadow-sm ${
                     isTakeover
-                      ? 'bg-amber-950/80 text-amber-300 border-amber-700 hover:bg-amber-900/80'
-                      : 'bg-slate-800 text-slate-300 border-slate-700 hover:bg-slate-700'
+                      ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
                   }`}
                 >
                   {isTakeover ? (
                     <>
-                      <PauseCircle className="w-3.5 h-3.5 text-amber-400" />
+                      <PauseCircle className="w-3.5 h-3.5 text-amber-600" />
                       Takeover Active (AI Paused)
                     </>
                   ) : (
                     <>
-                      <PlayCircle className="w-3.5 h-3.5 text-indigo-400" />
+                      <PlayCircle className="w-3.5 h-3.5 text-indigo-600" />
                       Enable Manual Takeover
                     </>
                   )}
@@ -273,15 +273,15 @@ export default function InboxPage() {
             </div>
 
             {/* Relationship Memory Summary Bar */}
-            <div className="px-4 py-2.5 bg-slate-900/70 border-b border-slate-800 text-xs flex flex-wrap items-center gap-4">
+            <div className="px-4 py-2.5 bg-white border-b border-slate-200 text-xs flex flex-wrap items-center gap-4 text-slate-600">
               <div className="flex-1">
                 <span className="text-slate-400 font-medium">Memory Summary:</span>{' '}
-                <span className="text-slate-200">{selectedRel.summary || 'None recorded'}</span>
+                <span className="text-slate-800">{selectedRel.summary || 'None recorded'}</span>
               </div>
               {selectedRel.factsJson && selectedRel.factsJson.length > 0 && (
-                <div className="text-slate-400">
-                  <span className="text-slate-300 font-medium">Verified Facts:</span>{' '}
-                  {selectedRel.factsJson.join(' • ')}
+                <div>
+                  <span className="text-slate-400 font-medium">Verified Facts:</span>{' '}
+                  <span className="text-slate-800 font-medium">{selectedRel.factsJson.join(' • ')}</span>
                 </div>
               )}
             </div>
@@ -300,15 +300,15 @@ export default function InboxPage() {
                       key={msg.id}
                       className={`flex flex-col ${isInbound ? 'items-start' : 'items-end'}`}
                     >
-                      <div className="flex items-center gap-1.5 text-[10px] text-slate-500 mb-1">
+                      <div className="flex items-center gap-1.5 text-[10px] text-slate-400 mb-1">
                         {isInbound ? (
                           <>
-                            <User className="w-3 h-3 text-slate-400" />
+                            <User className="w-3 h-3 text-slate-500" />
                             <span>{selectedContact.name}</span>
                           </>
                         ) : (
                           <>
-                            <Bot className="w-3 h-3 text-indigo-400" />
+                            <Bot className="w-3 h-3 text-indigo-600" />
                             <span>Relationship Agent</span>
                           </>
                         )}
@@ -319,12 +319,12 @@ export default function InboxPage() {
                       <div
                         className={`max-w-xl p-3.5 rounded-xl text-xs whitespace-pre-wrap leading-relaxed shadow-sm ${
                           isInbound
-                            ? 'bg-slate-900 text-slate-200 border border-slate-800'
-                            : 'bg-indigo-950/80 text-indigo-100 border border-indigo-800/80'
+                            ? 'bg-white text-slate-800 border border-slate-200'
+                            : 'bg-indigo-50 text-indigo-950 border border-indigo-200'
                         }`}
                       >
                         {msg.subject && (
-                          <div className="font-semibold pb-1.5 mb-1.5 border-b border-slate-800/80 text-slate-300">
+                          <div className="font-semibold pb-1.5 mb-1.5 border-b border-slate-100 text-slate-900">
                             {msg.subject}
                           </div>
                         )}
@@ -337,18 +337,18 @@ export default function InboxPage() {
             </div>
 
             {/* Proposed Reply or Manual Compose Pane */}
-            <div className="p-4 border-t border-slate-800 bg-slate-900/60 space-y-3">
+            <div className="p-4 border-t border-slate-200 bg-white space-y-3 shadow-lg">
               {currentAction && (
-                <div className="p-3.5 rounded-lg border border-slate-800 bg-slate-950 space-y-2">
+                <div className="p-3.5 rounded-xl border border-slate-200 bg-slate-50 space-y-2">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <Bot className="w-4 h-4 text-indigo-400" />
-                      <span className="text-xs font-semibold text-white">
+                      <Bot className="w-4 h-4 text-indigo-600" />
+                      <span className="text-xs font-semibold text-slate-900">
                         AI Proposed Next Action ({currentAction.type})
                       </span>
                       <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                        currentAction.status === 'AWAITING_APPROVAL' ? 'bg-amber-950 text-amber-400 border border-amber-800' :
-                        'bg-blue-950 text-blue-400'
+                        currentAction.status === 'AWAITING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-200' :
+                        'bg-blue-50 text-blue-700 border border-blue-200'
                       }`}>
                         {currentAction.status}
                       </span>
@@ -358,16 +358,16 @@ export default function InboxPage() {
                     </span>
                   </div>
 
-                  <div className="text-[11px] text-slate-400">
-                    <span className="text-slate-300 font-medium">Reason:</span> {currentAction.reason}
+                  <div className="text-[11px] text-slate-600">
+                    <span className="text-slate-400 font-medium">Reason:</span> {currentAction.reason}
                   </div>
 
                   {currentAction.payloadJson?.draft && (
-                    <div className="p-2.5 rounded bg-slate-900 border border-slate-800 text-xs">
-                      <div className="font-semibold text-slate-300 mb-1">
+                    <div className="p-3 rounded-lg bg-white border border-slate-200 text-xs shadow-sm">
+                      <div className="font-semibold text-slate-900 mb-1">
                         {currentAction.payloadJson.draft.subject}
                       </div>
-                      <pre className="text-slate-200 whitespace-pre-wrap font-sans text-[11px]">
+                      <pre className="text-slate-700 whitespace-pre-wrap font-sans text-[11px] leading-relaxed">
                         {currentAction.payloadJson.draft.body_text}
                       </pre>
                     </div>
@@ -377,7 +377,7 @@ export default function InboxPage() {
                   <div className="flex items-center gap-2 pt-1">
                     <button
                       onClick={() => handleAction(currentAction.id, 'approve')}
-                      className="px-3 py-1.5 rounded bg-emerald-700 hover:bg-emerald-600 text-white font-medium text-xs flex items-center gap-1 transition"
+                      className="px-3 py-1.5 rounded bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-xs flex items-center gap-1 shadow-sm transition"
                     >
                       <CheckCircle2 className="w-3.5 h-3.5" /> Approve & Enqueue Send
                     </button>
@@ -386,13 +386,13 @@ export default function InboxPage() {
                         setEditActionId(currentAction.id);
                         setEditText(currentAction.payloadJson?.draft?.body_text || '');
                       }}
-                      className="px-3 py-1.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium text-xs flex items-center gap-1 transition"
+                      className="px-3 py-1.5 rounded bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-medium text-xs flex items-center gap-1 transition"
                     >
                       <FileEdit className="w-3.5 h-3.5" /> Edit Proposed Draft
                     </button>
                     <button
                       onClick={() => handleAction(currentAction.id, 'reject', { reason: 'Operator rejected' })}
-                      className="px-3 py-1.5 rounded bg-rose-950 hover:bg-rose-900 text-rose-300 font-medium text-xs flex items-center gap-1 border border-rose-800 transition"
+                      className="px-3 py-1.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-700 font-medium text-xs flex items-center gap-1 border border-rose-200 transition"
                     >
                       <XCircle className="w-3.5 h-3.5" /> Reject
                     </button>
@@ -400,26 +400,26 @@ export default function InboxPage() {
 
                   {/* Inline Editor */}
                   {editActionId === currentAction.id && (
-                    <div className="p-3 rounded bg-slate-900 border border-indigo-700 space-y-2 mt-2">
-                      <div className="text-[11px] font-semibold text-indigo-300">
+                    <div className="p-3 rounded-lg bg-white border border-indigo-300 space-y-2 mt-2 shadow-sm">
+                      <div className="text-[11px] font-semibold text-indigo-700">
                         Editing Draft (Strictly increments draft version and resets approval)
                       </div>
                       <textarea
                         value={editText}
                         onChange={(e) => setEditText(e.target.value)}
                         rows={3}
-                        className="w-full p-2 text-xs bg-slate-950 border border-slate-800 rounded text-slate-200"
+                        className="w-full p-2 text-xs bg-slate-50 border border-slate-300 rounded text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500 font-mono"
                       />
                       <div className="flex justify-end gap-2">
                         <button
                           onClick={() => setEditActionId(null)}
-                          className="px-2 py-0.5 text-xs text-slate-400 hover:text-slate-200"
+                          className="px-2.5 py-1 text-xs text-slate-600 hover:text-slate-900"
                         >
                           Cancel
                         </button>
                         <button
                           onClick={() => handleAction(currentAction.id, 'edit', { newBodyText: editText })}
-                          className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold"
+                          className="px-3 py-1 rounded bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-sm"
                         >
                           Save Draft
                         </button>
@@ -429,10 +429,10 @@ export default function InboxPage() {
                 </div>
               )}
 
-              {/* Manual Operator Send Input (Always available if takeover is on, or when no action is pending) */}
+              {/* Manual Operator Send Input */}
               {isTakeover && (
                 <div className="space-y-2">
-                  <div className="text-xs font-semibold text-amber-300 flex items-center gap-1.5">
+                  <div className="text-xs font-semibold text-amber-700 flex items-center gap-1.5">
                     <User className="w-3.5 h-3.5" />
                     Operator Manual Reply (Takeover Mode)
                   </div>
@@ -442,12 +442,12 @@ export default function InboxPage() {
                       value={manualText}
                       onChange={(e) => setManualText(e.target.value)}
                       placeholder="Type a manual response to send directly to the contact..."
-                      className="flex-1 p-2 text-xs rounded-md bg-slate-950 border border-slate-800 text-slate-200 focus:outline-none focus:border-indigo-500"
+                      className="flex-1 p-2 text-xs rounded-md bg-slate-50 border border-slate-300 text-slate-900 focus:outline-none focus:ring-1 focus:ring-indigo-500"
                     />
                     <button
                       onClick={handleSendManual}
                       disabled={!manualText.trim()}
-                      className="px-4 py-2 rounded-md bg-amber-600 hover:bg-amber-500 text-white font-semibold text-xs shrink-0 self-end transition disabled:opacity-50"
+                      className="px-4 py-2 rounded-md bg-amber-600 hover:bg-amber-700 text-white font-semibold text-xs shrink-0 self-end transition disabled:opacity-50 shadow-sm"
                     >
                       Send Message
                     </button>
