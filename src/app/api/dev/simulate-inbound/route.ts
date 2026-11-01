@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getDbAsync } from '@/db/client';
 import { DecisionEngine } from '@/core/relationships/decision-engine';
-import { MockLLMProvider } from '@/providers/llm/mock';
+import { getLLMProvider } from '@/providers/llm';
 
 export async function POST(req: Request) {
   try {
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     const subject = body.subject || 'Integration question';
     const bodyText = body.bodyText || 'Hi, can you tell us more about your product?';
 
-    const llm = new MockLLMProvider();
+    const llm = getLLMProvider();
     const engine = new DecisionEngine(db, llm);
 
     const result = await engine.processInboundMessage({
