@@ -56,40 +56,47 @@ export class HostingerImapListener {
         const llm = getLLMProvider();
         const engine = new DecisionEngine(this.db, llm);
 
-        // Fetch unseen messages
-        for await (const message of client.fetch({ seen: false }, { source: true, uid: true, envelope: true })) {
-          try {
-            if (!message.source) continue;
-            const parsed = await simpleParser(message.source);
+        // Fetch the last 20 messages regardless of read/seen status
+        const mailboxStatus = await client.status('INBOX', { messages: true });
+        const totalMessages = (mailboxStatus && typeof mailboxStatus === 'object' && mailboxStatus.messages) ? mailboxStatus.messages : 0;
 
-            const fromAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || '';
-            const fromName = parsed.from?.value?.[0]?.name || '';
-            const subject = parsed.subject || '';
-            const htmlText = typeof parsed.html === 'string' ? parsed.html.replace(/<[^>]+>/g, ' ') : '';
-            const bodyText = parsed.text || htmlText || '';
-            const messageId = parsed.messageId || `imap_${message.uid}`;
+        if (totalMessages > 0) {
+          const startSeq = Math.max(1, totalMessages - 20);
+          const range = `${startSeq}:*`;
 
-            if (fromAddress && fromAddress !== this.user.toLowerCase()) {
-              await engine.processInboundMessage({
-                workspaceId,
-                fromEmail: fromAddress,
-                fromName,
-                subject,
-                bodyText,
-                provider: 'hostinger_imap',
-                providerMessageId: messageId,
-                internetMessageId: parsed.messageId,
-                inReplyTo: parsed.inReplyTo,
-              });
+          for await (const message of client.fetch(range, { source: true, uid: true, envelope: true })) {
+            try {
+              if (!message.source) continue;
+              const parsed = await simpleParser(message.source);
 
-              processedCount++;
+              const fromAddress = parsed.from?.value?.[0]?.address?.toLowerCase() || '';
+              const fromName = parsed.from?.value?.[0]?.name || '';
+              const subject = parsed.subject || '';
+              const htmlText = typeof parsed.html === 'string' ? parsed.html.replace(/<[^>]+>/g, ' ') : '';
+              const bodyText = parsed.text || htmlText || '';
+              const messageId = parsed.messageId || `imap_${message.uid}`;
+
+              if (fromAddress && fromAddress !== this.user.toLowerCase()) {
+                const result = await engine.processInboundMessage({
+                  workspaceId,
+                  fromEmail: fromAddress,
+                  fromName,
+                  subject,
+                  bodyText,
+                  provider: 'hostinger_imap',
+                  providerMessageId: messageId,
+                  internetMessageId: parsed.messageId,
+                  inReplyTo: parsed.inReplyTo,
+                });
+
+                if (result) {
+                  processedCount++;
+                }
+              }
+            } catch (msgErr: any) {
+              console.error('Error processing single IMAP message:', msgErr);
+              errors.push(msgErr.message);
             }
-
-            // Mark as seen so we don't re-process next cycle
-            await client.messageFlagsAdd({ uid: message.uid }, ['\\Seen']);
-          } catch (msgErr: any) {
-            console.error('Error processing single IMAP message:', msgErr);
-            errors.push(msgErr.message);
           }
         }
       } finally {
