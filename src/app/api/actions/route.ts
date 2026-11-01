@@ -39,8 +39,15 @@ export async function POST(req: Request) {
 
     // Trigger queue execution worker
     if (body.action === 'run_worker') {
-      const mockEmail = new MockEmailProvider();
-      const worker = new ActionWorker(db, { emailSender: mockEmail });
+      const emailProviderType = process.env.EMAIL_PROVIDER || 'mock';
+      let emailSender: any;
+      if (emailProviderType === 'resend') {
+        const { ResendEmailSender } = await import('@/providers/email/resend');
+        emailSender = new ResendEmailSender();
+      } else {
+        emailSender = new MockEmailProvider();
+      }
+      const worker = new ActionWorker(db, { emailSender });
       const summary = await worker.runWorkerCycle(workspaceId);
       return NextResponse.json({ success: true, summary });
     }

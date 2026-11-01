@@ -153,11 +153,16 @@ export class ActionWorker {
     }
 
     // 4. Handle Execution by Action Type
-    if (action.type === 'SEND_EMAIL') {
-      const payload = (action.payloadJson as Record<string, any>) || {};
-      const draft = payload.draft;
+    const rawPayload = action.payloadJson;
+    const payload = typeof rawPayload === 'string' ? JSON.parse(rawPayload) : (rawPayload || {});
+    const draft = payload.draft || payload;
+    const bodyText = draft.body_text || draft.bodyText || draft.body;
+    const subject = draft.subject || payload.subject || 'Digital TST measurement with TBConnect & SmartPatch';
 
-      if (!draft || !draft.body_text) {
+    const isEmailAction = action.type === 'SEND_EMAIL' || action.type === 'REQUEST_APPROVAL' || !!bodyText;
+
+    if (isEmailAction) {
+      if (!bodyText) {
         await this.db
           .update(actions)
           .set({ status: 'FAILED', lastError: 'No email draft payload found on action', updatedAt: new Date() })
@@ -172,8 +177,8 @@ export class ActionWorker {
         toName: contact.name,
         fromEmail: process.env.RESEND_DEFAULT_FROM || 'contact@tbconnect.in',
         fromName: process.env.SENDER_NAME || 'Dr. Mahek Aneja',
-        subject: draft.subject || 'Follow-up',
-        bodyText: draft.body_text,
+        subject,
+        bodyText,
         threadKey: action.relationshipId,
       };
 
