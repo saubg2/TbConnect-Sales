@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { Play, CheckCircle2, AlertTriangle, ShieldCheck, RefreshCw, Send, FileEdit, XCircle, Clock } from 'lucide-react';
 
 export default function DevHarnessPage() {
@@ -121,6 +122,12 @@ export default function DevHarnessPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Link
+            href="/contacts"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 text-xs font-semibold text-white shadow-sm transition"
+          >
+            Contacts & Import →
+          </Link>
           <button
             onClick={fetchData}
             disabled={loading}
