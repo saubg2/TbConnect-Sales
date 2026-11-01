@@ -7,6 +7,7 @@ import {
   messages,
   actions,
   events,
+  memberships,
 } from '@/db/schema';
 import type { Contact, Agent, Relationship, Message, Action } from '@/db/schema';
 import {
@@ -19,6 +20,7 @@ import {
 import { ActionService } from '@/core/actions/service';
 import { VoiceValidator } from '@/core/agents/voice';
 import { AgentService } from '@/core/agents/service';
+import { TelegramBotService } from '@/providers/telegram/bot';
 
 export interface ProcessInboundParams {
   workspaceId: string;
@@ -438,6 +440,51 @@ export class DecisionEngine {
       })
       .where(eq(relationships.id, relationship.id))
       .returning();
+
+    // 14. Telegram Alerts for Inbound & Approvals
+    try {
+      const botToken = process.env.TELEGRAM_BOT_TOKEN;
+      if (botToken) {
+        const botService = new TelegramBotService({ botToken }, this.db);
+        const allMembers = await this.db
+          .select()
+          .from(memberships)
+          .where(eq(memberships.workspaceId, params.workspaceId));
+
+        const linkedMember = allMembers.find((m: any) => {
+          const rawPerms = m.permissionsJson ?? m.permissions_json ?? {};
+          const perms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
+          return !!perms.telegram?.chatId;
+        });
+
+        if (linkedMember) {
+          const rawPerms = linkedMember.permissionsJson ?? linkedMember.permissions_json ?? {};
+          const perms = typeof rawPerms === 'string' ? JSON.parse(rawPerms) : rawPerms;
+          const chatId = perms.telegram.chatId;
+
+          await botService.sendInboundAlert(chatId, {
+            fromName: contact.name,
+            fromEmail: contact.emailNormalized,
+            subject: params.subject || 'Inbound Reply',
+            summary: decision.summary_update || params.bodyText.substring(0, 200),
+          });
+
+          if (decision.approval_required && draft) {
+            await botService.sendApprovalAlert(chatId, {
+              actionId: action.id,
+              draftVersion: draft.draft_version || 1,
+              contactName: contact.name,
+              recipientEmail: contact.emailNormalized,
+              subject: draft.subject,
+              bodyText: draft.body_text,
+              reason: decision.reason || 'Human approval required',
+            });
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error dispatching telegram inbound alert:', err);
+    }
 
     return {
       message: savedMessage,
