@@ -160,111 +160,111 @@ export default function AgentsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
       {/* Top Navbar */}
-      <header className="border-b border-slate-200 bg-white sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
+      <header className="border-b border-slate-300 bg-white sticky top-0 z-10 px-8 py-5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">
-          <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
+          <Link href="/" className="text-sm font-bold text-slate-700 hover:text-indigo-600 transition">
             ← Home
           </Link>
-          <span className="text-slate-300">|</span>
-          <Link href="/contacts" className="text-xs text-slate-500 hover:text-slate-900 transition">
+          <span className="text-slate-300 font-bold">|</span>
+          <Link href="/contacts" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
             Contacts
           </Link>
-          <span className="text-slate-300">|</span>
+          <span className="text-slate-300 font-bold">|</span>
           <div className="flex items-center gap-2">
-            <Bot className="w-4 h-4 text-emerald-600" />
-            <h1 className="text-base font-bold text-slate-900">Agent Studio</h1>
+            <Bot className="w-5 h-5 text-emerald-600" />
+            <h1 className="text-lg font-black text-slate-900">Agent Studio</h1>
           </div>
-          <span className="text-slate-300">|</span>
-          <Link href="/inbox" className="text-xs text-slate-500 hover:text-slate-900 transition">
+          <span className="text-slate-300 font-bold">|</span>
+          <Link href="/inbox" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
             Inbox
           </Link>
-          <span className="text-slate-300">|</span>
-          <Link href="/actions" className="text-xs text-slate-500 hover:text-slate-900 transition">
+          <span className="text-slate-300 font-bold">|</span>
+          <Link href="/actions" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
             Actions
           </Link>
-          <span className="text-slate-300">|</span>
-          <Link href="/settings" className="text-xs text-slate-500 hover:text-slate-900 transition">
+          <span className="text-slate-300 font-bold">|</span>
+          <Link href="/settings" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
             Settings
           </Link>
         </div>
 
         <div className="flex items-center gap-3">
           {saveSuccess && (
-            <span className="flex items-center gap-1 text-xs text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-1 rounded font-medium">
-              <CheckCircle2 className="w-3.5 h-3.5" /> Saved Successfully
+            <span className="flex items-center gap-1.5 text-xs text-emerald-800 bg-emerald-50 border border-emerald-300 px-3 py-1.5 rounded-lg font-bold">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" /> Saved Successfully
             </span>
           )}
           <button
             onClick={handleSave}
             disabled={saving || !selectedAgent}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-sm transition disabled:opacity-50"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition disabled:opacity-50"
           >
-            <Save className={`w-3.5 h-3.5 ${saving ? 'animate-spin' : ''}`} />
+            <Save className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
             {saving ? 'Saving...' : 'Save Configuration'}
           </button>
         </div>
       </header>
 
       {/* Main Body */}
-      <div className="flex-1 max-w-7xl w-full mx-auto p-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="flex-1 max-w-7xl w-full mx-auto p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column: Identity, Goal & Knowledge */}
         <div className="lg:col-span-2 space-y-6">
           {/* Identity & Goal Card */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Goal & Instructions</h2>
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
+            <div className="flex items-center gap-2.5 border-b border-slate-200 pb-3">
+              <Sparkles className="w-5 h-5 text-emerald-600" />
+              <h2 className="text-base font-black text-slate-900">Goal & Operating Instructions</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Agent Name</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Agent Name</label>
                 <input
                   type="text"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Core Goal</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Core Goal</label>
                 <input
                   type="text"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   placeholder="e.g. Schedule discovery conversations with verified B2B partners"
-                  className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500"
+                  className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-emerald-600"
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">
                 System Instructions & Behavior Rules
               </label>
               <textarea
                 rows={4}
                 value={instructions}
                 onChange={(e) => setInstructions(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded p-3 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-emerald-500 focus:border-emerald-500 leading-relaxed font-mono text-xs"
+                className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl p-3.5 text-sm text-slate-900 font-medium focus:outline-none focus:border-emerald-600 leading-relaxed font-mono"
               />
             </div>
           </div>
 
           {/* Approved Knowledge Base */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
-              <div className="flex items-center gap-2">
-                <BookOpen className="w-4 h-4 text-cyan-600" />
-                <h2 className="text-sm font-semibold text-slate-900">Approved Knowledge & Context</h2>
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="flex items-center justify-between border-b border-slate-200 pb-3">
+              <div className="flex items-center gap-2.5">
+                <BookOpen className="w-5 h-5 text-cyan-600" />
+                <h2 className="text-base font-black text-slate-900">Approved Knowledge & Context</h2>
               </div>
-              <span className="text-[10px] text-slate-500 font-mono">Factual Grounding Boundary</span>
+              <span className="text-xs text-slate-500 font-mono font-bold bg-slate-100 px-2 py-0.5 rounded">Factual Grounding Boundary</span>
             </div>
 
-            <p className="text-xs text-slate-500">
+            <p className="text-xs text-slate-600 font-medium">
               Only factual claims explicitly confirmed here or in the relationship memory may be asserted in drafts.
             </p>
 
@@ -273,55 +273,55 @@ export default function AgentsPage() {
               value={knowledgeText}
               onChange={(e) => setKnowledgeText(e.target.value)}
               placeholder="Enter approved product details, certified security specs, verified integration capabilities..."
-              className="w-full bg-slate-50 border border-slate-300 rounded p-3 text-xs text-slate-900 focus:outline-none focus:ring-1 focus:ring-cyan-500 focus:border-cyan-500 leading-relaxed font-mono"
+              className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl p-3.5 text-xs text-slate-900 font-medium focus:outline-none focus:border-cyan-600 leading-relaxed font-mono"
             />
           </div>
 
           {/* Voice & Style Profile */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Volume2 className="w-4 h-4 text-violet-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Voice Profile & Writing Style</h2>
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 space-y-5 shadow-sm">
+            <div className="flex items-center gap-2.5 border-b border-slate-200 pb-3">
+              <Volume2 className="w-5 h-5 text-violet-600" />
+              <h2 className="text-base font-black text-slate-900">Voice Profile & Writing Style</h2>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="md:col-span-2">
-                <label className="block text-xs font-medium text-slate-700 mb-1">Tone & Persona</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Tone & Persona</label>
                 <input
                   type="text"
                   value={tone}
                   onChange={(e) => setTone(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+                  className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:border-violet-600"
                 />
               </div>
               <div>
-                <label className="block text-xs font-medium text-slate-700 mb-1">Max Sentences Per Email</label>
+                <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Max Sentences Per Email</label>
                 <input
                   type="number"
                   min={1}
                   max={12}
                   value={maxSentences}
                   onChange={(e) => setMaxSentences(Number(e.target.value))}
-                  className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-violet-500 focus:border-violet-500"
+                  className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:border-violet-600"
                 />
               </div>
             </div>
 
             {/* Avoided Buzzwords / Phrases */}
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Avoided Buzzwords / Clichés</label>
-              <div className="flex flex-wrap gap-2 mb-2">
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-2">Avoided Buzzwords / Clichés</label>
+              <div className="flex flex-wrap gap-2 mb-3">
                 {avoidPhrases.map((phrase) => (
                   <span
                     key={phrase}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 rounded bg-rose-50 border border-rose-200 text-xs text-rose-700 font-medium"
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-50 border border-rose-300 text-xs text-rose-800 font-bold"
                   >
                     "{phrase}"
                     <button
                       onClick={() => removeAvoidPhrase(phrase)}
-                      className="text-rose-400 hover:text-rose-700 ml-1"
+                      className="text-rose-400 hover:text-rose-800 ml-1"
                     >
-                      <Trash2 className="w-3 h-3" />
+                      <Trash2 className="w-3.5 h-3.5" />
                     </button>
                   </span>
                 ))}
@@ -333,13 +333,13 @@ export default function AgentsPage() {
                   value={newAvoidPhrase}
                   onChange={(e) => setNewAvoidPhrase(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && addAvoidPhrase()}
-                  className="flex-1 bg-slate-50 border border-slate-300 rounded px-3 py-1.5 text-xs text-slate-900"
+                  className="flex-1 bg-slate-50 border-2 border-slate-300 rounded-xl px-4 py-2 text-xs text-slate-900 font-medium"
                 />
                 <button
                   onClick={addAvoidPhrase}
-                  className="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium rounded border border-slate-300"
+                  className="px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-800 text-xs font-bold rounded-xl border border-slate-300"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -349,18 +349,18 @@ export default function AgentsPage() {
         {/* Right Column: Provider Selection & Safety Permissions */}
         <div className="space-y-6">
           {/* LLM Provider Selection */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Cpu className="w-4 h-4 text-amber-600" />
-              <h2 className="text-sm font-semibold text-slate-900">LLM Provider Selection</h2>
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2.5 border-b border-slate-200 pb-3">
+              <Cpu className="w-5 h-5 text-amber-600" />
+              <h2 className="text-base font-black text-slate-900">LLM Provider Selection</h2>
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Active Provider</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Active Provider</label>
               <select
                 value={llmProvider}
                 onChange={(e) => setLlmProvider(e.target.value)}
-                className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:border-amber-600"
               >
                 <option value="mock">Deterministic Mock (Testing & Zero-Cost)</option>
                 <option value="mistral">Mistral AI (Native Structured JSON)</option>
@@ -369,44 +369,44 @@ export default function AgentsPage() {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-700 mb-1">Model Name</label>
+              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700 mb-1.5">Model Name</label>
               <input
                 type="text"
                 value={llmModel}
                 onChange={(e) => setLlmModel(e.target.value)}
                 placeholder="e.g. ministral-8b-latest"
-                className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-sm text-slate-900 font-mono text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 focus:border-amber-500"
+                className="w-full bg-slate-50 border-2 border-slate-300 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-amber-600"
               />
             </div>
 
-            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-xs text-amber-800">
-              Provider conforms to <code className="text-amber-900 font-semibold">LLMProvider</code> contract with structured Zod verification.
+            <div className="bg-amber-50 border-2 border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 font-semibold">
+              Provider conforms to <code className="text-amber-950 font-black">LLMProvider</code> contract with structured Zod verification.
             </div>
           </div>
 
           {/* Safety & Human Escalation Permissions */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-sm">
-            <div className="flex items-center gap-2 border-b border-slate-100 pb-3">
-              <ShieldAlert className="w-4 h-4 text-rose-600" />
-              <h2 className="text-sm font-semibold text-slate-900">Safety & Human Review Gates</h2>
+          <div className="bg-white border-2 border-slate-200 rounded-2xl p-6 space-y-4 shadow-sm">
+            <div className="flex items-center gap-2.5 border-b border-slate-200 pb-3">
+              <ShieldAlert className="w-5 h-5 text-rose-600" />
+              <h2 className="text-base font-black text-slate-900">Safety & Review Gates</h2>
             </div>
 
-            <p className="text-xs text-slate-500">
-              PRD Section 11: High-stakes actions strictly require human approval before any dispatch.
+            <p className="text-xs text-slate-600 font-medium">
+              High-stakes commercial inquiries strictly require human sign-off before dispatch.
             </p>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-3.5 pt-2">
               <label className="flex items-start gap-3 cursor-pointer">
                 <input
                   type="checkbox"
                   checked={allowPricing}
                   onChange={(e) => setAllowPricing(e.target.checked)}
-                  className="mt-1 rounded border-slate-300 text-rose-600 focus:ring-0"
+                  className="mt-1 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-0"
                 />
                 <div>
-                  <div className="text-xs font-semibold text-slate-800">Autonomous Pricing Quotes</div>
-                  <div className="text-[11px] text-slate-500">
-                    If unchecked, any commercial or price inquiry escalates to human review.
+                  <div className="text-sm font-bold text-slate-900">Autonomous Pricing Quotes</div>
+                  <div className="text-xs text-slate-500 font-medium">
+                    If unchecked, any price inquiry escalates to human review.
                   </div>
                 </div>
               </label>
@@ -416,12 +416,12 @@ export default function AgentsPage() {
                   type="checkbox"
                   checked={allowContractTerms}
                   onChange={(e) => setAllowContractTerms(e.target.checked)}
-                  className="mt-1 rounded border-slate-300 text-rose-600 focus:ring-0"
+                  className="mt-1 w-4 h-4 rounded border-slate-300 text-rose-600 focus:ring-0"
                 />
                 <div>
-                  <div className="text-xs font-semibold text-slate-800">Autonomous Contract Terms</div>
-                  <div className="text-[11px] text-slate-500">
-                    If unchecked, commitments or legal statements require human sign-off.
+                  <div className="text-sm font-bold text-slate-900">Autonomous Contract Terms</div>
+                  <div className="text-xs text-slate-500 font-medium">
+                    If unchecked, legal statements require human sign-off.
                   </div>
                 </div>
               </label>
@@ -431,11 +431,11 @@ export default function AgentsPage() {
                   type="checkbox"
                   checked={allowDirectOutreach}
                   onChange={(e) => setAllowDirectOutreach(e.target.checked)}
-                  className="mt-1 rounded border-slate-300 text-emerald-600 focus:ring-0"
+                  className="mt-1 w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-0"
                 />
                 <div>
-                  <div className="text-xs font-semibold text-slate-800">Allow Outbound Email Drafting</div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-sm font-bold text-slate-900">Allow Outbound Email Drafting</div>
+                  <div className="text-xs text-slate-500 font-medium">
                     Permit agent to queue outreach actions for active relationships.
                   </div>
                 </div>
@@ -446,11 +446,11 @@ export default function AgentsPage() {
                   type="checkbox"
                   checked={requireReviewNewDomains}
                   onChange={(e) => setRequireReviewNewDomains(e.target.checked)}
-                  className="mt-1 rounded border-slate-300 text-amber-600 focus:ring-0"
+                  className="mt-1 w-4 h-4 rounded border-slate-300 text-amber-600 focus:ring-0"
                 />
                 <div>
-                  <div className="text-xs font-semibold text-slate-800">Require Review For New Domains</div>
-                  <div className="text-[11px] text-slate-500">
+                  <div className="text-sm font-bold text-slate-900">Require Review For New Domains</div>
+                  <div className="text-xs text-slate-500 font-medium">
                     Escalate actions when contacting previously unseen organization domains.
                   </div>
                 </div>

@@ -41,13 +41,31 @@ export default function DevHarnessPage() {
     fetchData();
   }, []);
 
-  const triggerInbound = async (scenario?: 'info' | 'pricing' | 'optout') => {
+  const triggerInbound = async (scenario?: 'info' | 'pricing' | 'optout' | 'saurabh' | 'saub') => {
     let from = inboundFrom;
     let name = inboundName;
     let subject = inboundSubject;
     let body = inboundBody;
 
-    if (scenario === 'info') {
+    if (scenario === 'saurabh') {
+      from = 'saurabhjaipur@gmail.com';
+      name = 'Saurabh Sharma';
+      subject = 'Evaluating your enterprise platform';
+      body = 'Hi Sarah, we are exploring your relationship agent SaaS for our sales team. Do you support webhooks and custom agent prompts?';
+      setInboundFrom(from);
+      setInboundName(name);
+      setInboundSubject(subject);
+      setInboundBody(body);
+    } else if (scenario === 'saub') {
+      from = 'saubconsulting@gmail.com';
+      name = 'Saub Consulting';
+      subject = 'Exploring partnership & discovery call';
+      body = 'Hello Sarah, we would like to schedule a quick 15-minute discovery conversation next week to explore partnership opportunities.';
+      setInboundFrom(from);
+      setInboundName(name);
+      setInboundSubject(subject);
+      setInboundBody(body);
+    } else if (scenario === 'info') {
       from = 'carol.dev@saaspartner.com';
       name = 'Carol Developer';
       subject = 'Evaluating your API platform';
@@ -202,27 +220,41 @@ export default function DevHarnessPage() {
             <Send className="w-4 h-4 text-indigo-600" />
             Inbound Simulator (Simulates Inbound Webhook / Email)
           </h2>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              onClick={() => triggerInbound('saurabh')}
+              disabled={loading}
+              className="px-3 py-1 text-xs rounded-lg bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border-2 border-emerald-300 transition font-black"
+            >
+              ★ Saurabh (saurabhjaipur@gmail.com)
+            </button>
+            <button
+              onClick={() => triggerInbound('saub')}
+              disabled={loading}
+              className="px-3 py-1 text-xs rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border-2 border-indigo-300 transition font-black"
+            >
+              ★ Saub (saubconsulting@gmail.com)
+            </button>
             <button
               onClick={() => triggerInbound('info')}
               disabled={loading}
-              className="px-2.5 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition font-medium"
+              className="px-2.5 py-1 text-xs rounded bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300 transition font-bold"
             >
-              Preset: Info Inquiry
+              Info Inquiry
             </button>
             <button
               onClick={() => triggerInbound('pricing')}
               disabled={loading}
-              className="px-2.5 py-1 text-xs rounded bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition font-medium"
+              className="px-2.5 py-1 text-xs rounded bg-amber-50 hover:bg-amber-100 text-amber-800 border border-amber-200 transition font-bold"
             >
-              Preset: Pricing Escalation
+              Pricing Escalation
             </button>
             <button
               onClick={() => triggerInbound('optout')}
               disabled={loading}
-              className="px-2.5 py-1 text-xs rounded bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 transition font-medium"
+              className="px-2.5 py-1 text-xs rounded bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-200 transition font-bold"
             >
-              Preset: Opt-Out
+              Opt-Out
             </button>
           </div>
         </div>
