@@ -129,6 +129,10 @@ export default function InboxPage() {
             Contacts
           </Link>
           <span className="text-slate-700">|</span>
+          <Link href="/actions" className="text-xs text-slate-400 hover:text-slate-200 transition">
+            Actions
+          </Link>
+          <span className="text-slate-700">|</span>
           <div className="flex items-center gap-2">
             <Inbox className="w-4 h-4 text-indigo-400" />
             <h1 className="text-base font-bold text-white">Inbox & Thread Takeover</h1>
