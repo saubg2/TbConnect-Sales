@@ -4,21 +4,40 @@ import * as schema from './schema';
 import { getDevDb } from './dev-db';
 
 let dbInstance: any = null;
+let initializedWorkspace = false;
+
+async function ensureDefaultWorkspace(dbToSeed: any) {
+  if (initializedWorkspace) return;
+  try {
+    await dbToSeed.insert(schema.workspaces).values({
+      id: 'ws_default',
+      name: 'Default Workspace',
+      settingsJson: { outboundEnabled: true },
+    }).onConflictDoNothing();
+    initializedWorkspace = true;
+  } catch (e) {
+    // Non-blocking if table or network isn't ready
+  }
+}
 
 export async function getDbAsync() {
-  if (dbInstance) return dbInstance;
+  if (dbInstance) {
+    await ensureDefaultWorkspace(dbInstance);
+    return dbInstance;
+  }
 
-  if (process.env.USE_REAL_POSTGRES === 'true' && process.env.DATABASE_URL) {
+  if (process.env.DATABASE_URL && process.env.USE_REAL_POSTGRES !== 'false') {
     const client = postgres(process.env.DATABASE_URL, {
       max: 10,
       idle_timeout: 20,
       connect_timeout: 10,
     });
     dbInstance = drizzlePg(client, { schema });
+    await ensureDefaultWorkspace(dbInstance);
     return dbInstance;
   }
 
-  // By default, use embedded PGlite for self-contained, reproducible execution
+  // Fallback to embedded PGlite for self-contained testing if no DATABASE_URL
   dbInstance = await getDevDb();
   return dbInstance;
 }
@@ -29,7 +48,7 @@ export function setDb(customDb: any) {
 
 export function getDb() {
   if (!dbInstance) {
-    if (process.env.USE_REAL_POSTGRES === 'true' && process.env.DATABASE_URL) {
+    if (process.env.DATABASE_URL && process.env.USE_REAL_POSTGRES !== 'false') {
       const client = postgres(process.env.DATABASE_URL, {
         max: 10,
         idle_timeout: 20,

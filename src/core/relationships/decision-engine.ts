@@ -18,6 +18,7 @@ import {
 } from '@/providers/types';
 import { ActionService } from '@/core/actions/service';
 import { VoiceValidator } from '@/core/agents/voice';
+import { AgentService } from '@/core/agents/service';
 
 export interface ProcessInboundParams {
   workspaceId: string;
@@ -134,11 +135,16 @@ export class DecisionEngine {
     }
 
     // 3. Find active agent for this workspace
-    const [agent] = await this.db
+    let [agent] = await this.db
       .select()
       .from(agents)
       .where(and(eq(agents.workspaceId, params.workspaceId), eq(agents.isActive, true)))
       .limit(1);
+
+    if (!agent) {
+      const agentsList = await AgentService.listAgents(params.workspaceId, this.db);
+      agent = agentsList.find((a: any) => a.isActive) || agentsList[0];
+    }
 
     if (!agent) {
       throw new Error(`No active agent configured for workspace ${params.workspaceId}`);
