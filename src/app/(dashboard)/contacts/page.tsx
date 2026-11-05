@@ -196,7 +196,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
   ];
 
   return (
-    <div className="min-h-screen bg-white text-black font-sans">
+    <div className="sketch-page min-h-screen bg-white text-black font-sans">
       <AppHeader actions={
         <button
             onClick={() => {

@@ -15,3 +15,80 @@ body {
   font-family: Roboto, Arial, Helvetica, sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* Shared monochrome sketch language for every application surface. */
+.sketch-page {
+  background: #fff !important;
+  color: #000 !important;
+}
+
+.sketch-page [class*="bg-slate-"],
+.sketch-page [class*="bg-neutral-"],
+.sketch-page [class*="bg-indigo-50"],
+.sketch-page [class*="bg-emerald-50"],
+.sketch-page [class*="bg-amber-50"],
+.sketch-page [class*="bg-rose-50"],
+.sketch-page [class*="bg-sky-50"] {
+  background-color: #fff !important;
+}
+
+.sketch-page [class*="bg-indigo-6"],
+.sketch-page [class*="bg-indigo-7"],
+.sketch-page [class*="bg-emerald-6"],
+.sketch-page [class*="bg-emerald-7"],
+.sketch-page [class*="bg-rose-6"],
+.sketch-page [class*="bg-rose-7"],
+.sketch-page [class*="bg-sky-6"],
+.sketch-page [class*="bg-sky-7"] {
+  background-color: #000 !important;
+  color: #fff !important;
+}
+
+.sketch-page [class*="text-slate-"],
+.sketch-page [class*="text-neutral-"],
+.sketch-page [class*="text-indigo-"],
+.sketch-page [class*="text-emerald-"],
+.sketch-page [class*="text-amber-"],
+.sketch-page [class*="text-rose-"],
+.sketch-page [class*="text-sky-"] {
+  color: #000 !important;
+}
+
+.sketch-page [class*="bg-indigo-6"] [class*="text-"],
+.sketch-page [class*="bg-emerald-6"] [class*="text-"],
+.sketch-page [class*="bg-rose-6"] [class*="text-"],
+.sketch-page [class*="bg-sky-6"] [class*="text-"] {
+  color: #fff !important;
+}
+
+.sketch-page [class*="border-slate-"],
+.sketch-page [class*="border-neutral-"],
+.sketch-page [class*="border-indigo-"],
+.sketch-page [class*="border-emerald-"],
+.sketch-page [class*="border-amber-"],
+.sketch-page [class*="border-rose-"],
+.sketch-page [class*="border-sky-"] {
+  border-color: #000 !important;
+}
+
+.sketch-page [class*="shadow"] {
+  box-shadow: none !important;
+}
+
+.sketch-page .rounded,
+.sketch-page [class*="rounded-"] {
+  border-radius: 0 !important;
+}
+
+.sketch-page input,
+.sketch-page textarea,
+.sketch-page select {
+  border-color: #000 !important;
+  background: #fff !important;
+  color: #000 !important;
+}
+
+.sketch-page button,
+.sketch-page a {
+  box-shadow: none !important;
+}

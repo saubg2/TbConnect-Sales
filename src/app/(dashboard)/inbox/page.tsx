@@ -117,7 +117,7 @@ export default function InboxPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
+    <div className="sketch-page min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
       {/* Top Navbar */}
       <header className="border-b border-slate-300 bg-white sticky top-0 z-10 px-8 py-5 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-4">

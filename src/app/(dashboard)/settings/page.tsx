@@ -131,7 +131,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
+    <div className="sketch-page min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
       {/* Top Navbar */}
       <header className="border-b-2 border-slate-200 bg-white sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">

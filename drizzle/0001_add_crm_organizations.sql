@@ -21,18 +21,24 @@ ALTER TABLE "contacts" ADD COLUMN "organization_id" text;
 --> statement-breakpoint
 INSERT INTO "organizations" (id, workspace_id, name, type, country)
 SELECT
-  md5(c.workspace_id || ':' || lower(trim(c.organisation))),
-  c.workspace_id,
-  trim(c.organisation),
+  md5(source.workspace_id || ':' || lower(source.name)),
+  source.workspace_id,
+  source.name,
   CASE
-    WHEN lower(c.organisation) ~ '(minister|ministry|national[[:space:]]+(tb|tuberculosis)[[:space:]]+program)' THEN 'Government'
-    WHEN lower(c.organisation) ~ '(university|institute|institutet|college|hospital)' THEN 'Academic/Hospital'
+    WHEN lower(source.name) ~ '(minister|ministry|national[[:space:]]+(tb|tuberculosis)[[:space:]]+program)' THEN 'Government'
+    WHEN lower(source.name) ~ '(university|institute|institutet|college|hospital)' THEN 'Academic/Hospital'
     ELSE 'Other'
   END,
-  min(nullif(trim(c.country), ''))
-FROM "contacts" c
-WHERE nullif(trim(c.organisation), '') IS NOT NULL
-GROUP BY c.workspace_id, trim(c.organisation), lower(trim(c.organisation))
+  source.country
+FROM (
+  SELECT DISTINCT ON (workspace_id, lower(trim(organisation)))
+    workspace_id,
+    trim(organisation) AS name,
+    nullif(trim(country), '') AS country
+  FROM "contacts"
+  WHERE nullif(trim(organisation), '') IS NOT NULL
+  ORDER BY workspace_id, lower(trim(organisation)), updated_at DESC
+) source
 ON CONFLICT (workspace_id, name) DO NOTHING;
 --> statement-breakpoint
 UPDATE "contacts" c

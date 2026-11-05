@@ -124,7 +124,7 @@ export default function DevHarnessPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white font-sans text-black">
+    <div className="sketch-page min-h-screen bg-white font-sans text-black">
       <AppHeader actions={
         <button
             onClick={fetchData}
