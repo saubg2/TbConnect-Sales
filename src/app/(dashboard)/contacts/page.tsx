@@ -3,27 +3,40 @@
 import React, { useState, useEffect } from 'react';
 import {
   Users,
+  Building2,
+  KanbanSquare,
   Upload,
   Search,
-  Filter,
   ShieldAlert,
   ShieldCheck,
   CheckCircle2,
   FileSpreadsheet,
   X,
-  Clock,
-  ArrowRight,
-  ExternalLink,
-  ChevronRight,
-  UserCheck,
 } from 'lucide-react';
-import Link from 'next/link';
+import { AppHeader } from '@/components/app-header';
+
+type CrmTab = 'contacts' | 'organizations' | 'pipeline';
+type OrganizationSummary = {
+  id: string | null;
+  name: string;
+  type: string;
+  website: string | null;
+  address: string | null;
+  owner: string | null;
+  phone: string | null;
+  notes: string | null;
+  contacts: number;
+  countries: Set<string>;
+  active: number;
+  stages: Set<string>;
+};
 
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [suppressedFilter, setSuppressedFilter] = useState<'all' | 'active' | 'suppressed'>('all');
+  const [activeTab, setActiveTab] = useState<CrmTab>('contacts');
 
   // Modal & Drawer State
   const [showImportModal, setShowImportModal] = useState(false);
@@ -38,15 +51,10 @@ export default function ContactsPage() {
   const fetchContacts = async () => {
     setLoading(true);
     try {
-      let url = `/api/contacts?workspaceId=ws_default`;
-      if (search) url += `&search=${encodeURIComponent(search)}`;
-      if (suppressedFilter === 'active') url += `&isSuppressed=false`;
-      if (suppressedFilter === 'suppressed') url += `&isSuppressed=true`;
-
-      const res = await fetch(url);
+      const res = await fetch('/api/contacts/crm?workspaceId=ws_default');
       const data = await res.json();
-      if (data && data.contacts) {
-        setContacts(data.contacts);
+      if (data && data.records) {
+        setContacts(data.records);
       }
     } catch (e) {
       console.error(e);
@@ -57,7 +65,7 @@ export default function ContactsPage() {
 
   useEffect(() => {
     fetchContacts();
-  }, [search, suppressedFilter]);
+  }, []);
 
   const loadProfile = async (contactId: string) => {
     setSelectedContactId(contactId);
@@ -118,31 +126,6 @@ export default function ContactsPage() {
     }
   };
 
-  const seedMonitoredContacts = async () => {
-    setImportLoading(true);
-    try {
-      const csv = `Name,Email,Company,Country,Tags,Suppressed,Reason
-Saurabh Sharma,saurabhjaipur@gmail.com,Jaipur Tech,India,vip;test-lead,false,
-Saub Consulting,saubconsulting@gmail.com,Saub Consulting,India,vip;client,false,`;
-      const res = await fetch('/api/contacts/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          workspaceId: 'ws_default',
-          csvText: csv,
-          sourceName: 'monitored_experiment',
-        }),
-      });
-      const data = await res.json();
-      setImportResult(data);
-      await fetchContacts();
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setImportLoading(false);
-    }
-  };
-
   const loadSampleCSV = (count: 2 | 5 | 100) => {
     if (count === 2) {
       setCsvInput(`Name,Email,Company,Country,Tags,Suppressed,Reason
@@ -167,210 +150,171 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
     }
   };
 
+  const visibleContacts = contacts.filter((contact) => {
+    const query = search.trim().toLowerCase();
+    const matchesSearch = !query || [contact.name, contact.emailNormalized, contact.organisation, contact.country]
+      .some(value => String(value || '').toLowerCase().includes(query));
+    const matchesStatus = suppressedFilter === 'all'
+      || (suppressedFilter === 'active' && !contact.isSuppressed)
+      || (suppressedFilter === 'suppressed' && contact.isSuppressed);
+    return matchesSearch && matchesStatus;
+  });
+
+  const organizationMap = visibleContacts.reduce<Map<string, OrganizationSummary>>((grouped, contact) => {
+    const name = contact.organisation || 'No organization';
+    const current = grouped.get(name) || {
+      id: contact.organizationId || null,
+      name,
+      type: contact.organizationType || 'Other',
+      website: contact.organizationWebsite || null,
+      address: contact.organizationAddress || null,
+      owner: contact.organizationOwner || null,
+      phone: contact.organizationPhone || null,
+      notes: contact.organizationNotes || null,
+      contacts: 0,
+      countries: new Set<string>(),
+      active: 0,
+      stages: new Set<string>(),
+    };
+    current.contacts += 1;
+    if (contact.country) current.countries.add(contact.country);
+    if (!contact.isSuppressed) current.active += 1;
+    current.stages.add(contact.stage || 'NEW');
+    grouped.set(name, current);
+    return grouped;
+  }, new Map<string, OrganizationSummary>());
+  const organizations = Array.from(organizationMap.values())
+    .sort((a, b) => b.contacts - a.contacts || a.name.localeCompare(b.name));
+
+  const pipelineStages = [
+    { key: 'NEW', label: 'Qualification' },
+    { key: 'OUTREACH', label: 'Outreach' },
+    { key: 'ENGAGED', label: 'Needs Analysis' },
+    { key: 'NEGOTIATING', label: 'Proposal / Review' },
+    { key: 'COMPLETED', label: 'Closed Won' },
+    { key: 'STALLED,OPTED_OUT', label: 'Closed Lost' },
+  ];
+
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-300 bg-white sticky top-0 z-10 px-8 py-5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-sm font-bold text-slate-700 hover:text-indigo-600 transition">
-            ← Home
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <div className="flex items-center gap-2">
-            <Users className="w-5 h-5 text-indigo-600" />
-            <h1 className="text-lg font-black text-slate-900">Contacts</h1>
-          </div>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/agents" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Agents
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/inbox" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Inbox
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/actions" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Actions
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/settings" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Settings
-          </Link>
-          <span className="text-xs px-3 py-1 rounded-full bg-slate-100 text-slate-800 border border-slate-300 font-bold">
-            {contacts.length} Records
-          </span>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={seedMonitoredContacts}
-            disabled={importLoading}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow transition"
-          >
-            <UserCheck className="w-4 h-4" />
-            + Add 2 Monitored Contacts (Saurabh & Saub)
-          </button>
-
-          <button
+    <div className="min-h-screen bg-white text-black font-sans">
+      <AppHeader actions={
+        <button
             onClick={() => {
               setShowImportModal(true);
               setImportResult(null);
             }}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow transition"
+            className="flex items-center gap-1.5 border border-black bg-black px-3 py-1.5 text-xs font-bold text-white hover:bg-neutral-800"
           >
             <Upload className="w-4 h-4" />
             Import CSV
           </button>
-        </div>
-      </header>
+      } />
 
-      {/* Main Container */}
-      <main className="flex-1 p-8 max-w-7xl w-full mx-auto space-y-6">
-        {/* Quick Helper Banner for Monitored Experiment */}
-        <div className="bg-white border-2 border-indigo-200 rounded-2xl p-5 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h2 className="text-base font-black text-slate-900 flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
-              Live Monitored Experiment Mode
-            </h2>
-            <p className="text-sm text-slate-600 mt-1 font-medium">
-              Click <strong className="text-emerald-700">&quot;+ Add 2 Monitored Contacts&quot;</strong> to instantly seed <strong>saurabhjaipur@gmail.com</strong> and <strong>saubconsulting@gmail.com</strong>.
-            </p>
+      <main className="w-full px-5 py-4 space-y-3">
+        <div className="flex items-end justify-between border-b border-black">
+          <div className="flex items-end">
+            {([
+              ['contacts', 'Contacts', Users],
+              ['organizations', 'Organizations', Building2],
+              ['pipeline', 'Leads Pipeline', KanbanSquare],
+            ] as const).map(([key, label, Icon]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex items-center gap-2 border-x border-t border-black px-5 py-2 text-xs font-black ${
+                  activeTab === key ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
+                }`}
+              >
+                <Icon className="h-3.5 w-3.5" />
+                {label}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-2">
-            <span className="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg text-xs font-bold">
-              Target 1: saurabhjaipur@gmail.com
-            </span>
-            <span className="px-3 py-1 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-lg text-xs font-bold">
-              Target 2: saubconsulting@gmail.com
-            </span>
+          <div className="pb-2 text-[11px] font-bold uppercase tracking-wider text-neutral-600">
+            {contacts.length} records
           </div>
         </div>
 
-        {/* Search & Filter Toolbar */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-4 bg-white p-4 rounded-xl border border-slate-300 shadow-sm">
-          <div className="relative w-full sm:w-96">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+        <div className="flex items-center justify-between gap-3 border border-black bg-white p-2">
+          <div className="relative w-full max-w-md">
+            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-black" />
             <input
               type="text"
-              placeholder="Search by name, email, or company..."
+              placeholder={`Search ${activeTab === 'pipeline' ? 'pipeline' : activeTab}...`}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 text-sm bg-slate-50 border-2 border-slate-300 rounded-lg text-slate-900 font-medium focus:outline-none focus:border-indigo-600"
+              className="w-full border border-black bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-black outline-none focus:ring-1 focus:ring-black"
             />
           </div>
 
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-300 text-xs self-stretch sm:self-auto justify-center font-bold">
+          <div className="flex items-center border border-black text-[11px] font-bold">
             <button
               onClick={() => setSuppressedFilter('all')}
-              className={`px-4 py-1.5 rounded-lg transition ${
-                suppressedFilter === 'all'
-                  ? 'bg-white text-slate-950 shadow font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`px-3 py-1.5 ${suppressedFilter === 'all' ? 'bg-black text-white' : 'bg-white text-black'}`}
             >
-              All Contacts
+              All
             </button>
             <button
               onClick={() => setSuppressedFilter('active')}
-              className={`px-4 py-1.5 rounded-lg transition ${
-                suppressedFilter === 'active'
-                  ? 'bg-white text-slate-950 shadow font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`border-l border-black px-3 py-1.5 ${suppressedFilter === 'active' ? 'bg-black text-white' : 'bg-white text-black'}`}
             >
-              Eligible Only
+              Eligible
             </button>
             <button
               onClick={() => setSuppressedFilter('suppressed')}
-              className={`px-4 py-1.5 rounded-lg transition ${
-                suppressedFilter === 'suppressed'
-                  ? 'bg-white text-slate-950 shadow font-black'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
+              className={`border-l border-black px-3 py-1.5 ${suppressedFilter === 'suppressed' ? 'bg-black text-white' : 'bg-white text-black'}`}
             >
               Suppressed
             </button>
           </div>
         </div>
 
-        {/* Contacts Table */}
-        <div className="bg-white rounded-2xl border-2 border-slate-300 shadow overflow-hidden">
-          <table className="w-full text-left text-sm">
-            <thead className="bg-slate-100 text-slate-800 border-b-2 border-slate-300 uppercase tracking-wider text-xs font-black">
+        {activeTab === 'contacts' && (
+        <div className="max-h-[calc(100vh-180px)] overflow-auto border border-black bg-white">
+          <table className="w-full border-collapse text-left text-xs">
+            <thead className="sticky top-0 z-10 border-b border-black bg-neutral-100 text-[10px] font-black uppercase tracking-wider text-black">
               <tr>
-                <th className="py-3.5 px-5">Contact</th>
-                <th className="py-3.5 px-5">Company</th>
-                <th className="py-3.5 px-5">Country</th>
-                <th className="py-3.5 px-5">Tags</th>
-                <th className="py-3.5 px-5">Status</th>
-                <th className="py-3.5 px-5 text-right">Action</th>
+                <th className="border-r border-black px-3 py-2">Name</th>
+                <th className="border-r border-black px-3 py-2">Email</th>
+                <th className="border-r border-black px-3 py-2">Organization</th>
+                <th className="border-r border-black px-3 py-2">Country</th>
+                <th className="border-r border-black px-3 py-2">Pipeline stage</th>
+                <th className="border-r border-black px-3 py-2">Status</th>
+                <th className="px-3 py-2 text-right">Action</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-200">
-              {contacts.length === 0 ? (
+            <tbody>
+              {visibleContacts.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-16 text-center text-slate-600 font-medium">
-                    No contacts found. Click <strong>&quot;+ Add 2 Monitored Contacts&quot;</strong> above to get started immediately.
+                  <td colSpan={7} className="py-12 text-center font-bold text-neutral-500">
+                    No contacts match this view.
                   </td>
                 </tr>
               ) : (
-                contacts.map((contact) => (
+                visibleContacts.map((contact) => (
                   <tr
                     key={contact.id}
-                    className="hover:bg-slate-50 cursor-pointer transition font-medium"
+                    className="cursor-pointer border-b border-black/20 font-medium hover:bg-neutral-100"
                     onClick={() => loadProfile(contact.id)}
                   >
-                    <td className="py-4 px-5">
-                      <div className="font-bold text-slate-900 text-base">{contact.name}</div>
-                      <div className="text-slate-600 font-mono text-xs font-semibold">{contact.emailNormalized}</div>
+                    <td className="border-r border-black/20 px-3 py-2 font-bold">{contact.name}</td>
+                    <td className="border-r border-black/20 px-3 py-2 font-mono text-[11px]">{contact.emailNormalized}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{contact.organisation || '—'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{contact.country || '—'}</td>
+                    <td className="border-r border-black/20 px-3 py-2 font-bold">{contact.stage || 'NEW'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">
+                      <span className={`inline-flex items-center gap-1 border border-black px-1.5 py-0.5 text-[10px] font-bold ${contact.isSuppressed ? 'bg-neutral-200' : 'bg-white'}`}>
+                        {contact.isSuppressed ? <ShieldAlert className="h-3 w-3" /> : <ShieldCheck className="h-3 w-3" />}
+                        {contact.isSuppressed ? 'Suppressed' : 'Eligible'}
+                      </span>
                     </td>
-                    <td className="py-4 px-5 text-slate-800 font-semibold">
-                      {contact.organisation || <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="py-4 px-5 text-slate-800">
-                      {contact.country || <span className="text-slate-400">—</span>}
-                    </td>
-                    <td className="py-4 px-5">
-                      <div className="flex flex-wrap gap-1.5">
-                        {contact.tagsJson && contact.tagsJson.length > 0 ? (
-                          contact.tagsJson.map((t: string) => (
-                            <span
-                              key={t}
-                              className="px-2.5 py-0.5 rounded-md bg-slate-100 text-slate-800 text-xs border border-slate-300 font-bold"
-                            >
-                              {t}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-slate-400">—</span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="py-4 px-5">
-                      {contact.isSuppressed ? (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-rose-50 text-rose-800 border border-rose-300">
-                          <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
-                          <span>Suppressed</span>
-                        </div>
-                      ) : (
-                        <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-300">
-                          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                          <span>Eligible</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-4 px-5 text-right">
+                    <td className="px-3 py-2 text-right">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           handleToggleSuppression(contact.id, contact.isSuppressed);
                         }}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-sm ${
-                          contact.isSuppressed
-                            ? 'bg-slate-200 hover:bg-slate-300 text-slate-900 border border-slate-400'
-                            : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border border-rose-300'
-                        }`}
+                        className="border border-black bg-white px-2 py-1 text-[10px] font-bold hover:bg-black hover:text-white"
                       >
                         {contact.isSuppressed ? 'Unsuppress' : 'Suppress'}
                       </button>
@@ -381,6 +325,73 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
             </tbody>
           </table>
         </div>
+        )}
+
+        {activeTab === 'organizations' && (
+          <div className="max-h-[calc(100vh-180px)] overflow-auto border border-black bg-white">
+            <table className="w-full border-collapse text-left text-xs">
+              <thead className="sticky top-0 border-b border-black bg-neutral-100 text-[10px] font-black uppercase tracking-wider">
+                <tr>
+                  <th className="border-r border-black px-3 py-2">Organization</th>
+                  <th className="border-r border-black px-3 py-2">Type</th>
+                  <th className="border-r border-black px-3 py-2">Contacts</th>
+                  <th className="border-r border-black px-3 py-2">Eligible</th>
+                  <th className="border-r border-black px-3 py-2">Countries</th>
+                  <th className="border-r border-black px-3 py-2">Website</th>
+                  <th className="border-r border-black px-3 py-2">Owner</th>
+                  <th className="border-r border-black px-3 py-2">Phone</th>
+                  <th className="px-3 py-2">Pipeline coverage</th>
+                </tr>
+              </thead>
+              <tbody>
+                {organizations.map(org => (
+                  <tr key={org.name} className="border-b border-black/20 hover:bg-neutral-100">
+                    <td className="border-r border-black/20 px-3 py-2 font-bold">{org.name}</td>
+                    <td className="border-r border-black/20 px-3 py-2 font-bold">{org.type}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{org.contacts}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{org.active}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{Array.from(org.countries).join(', ') || '—'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{org.website || '—'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{org.owner || '—'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{org.phone || '—'}</td>
+                    <td className="px-3 py-2 font-mono text-[10px]">{Array.from(org.stages).join(' · ')}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
+        {activeTab === 'pipeline' && (
+          <div className="grid min-w-[1100px] grid-cols-6 gap-2 overflow-x-auto pb-3">
+            {pipelineStages.map(stage => {
+              const keys = stage.key.split(',');
+              const records = visibleContacts.filter(contact => keys.includes(contact.stage || 'NEW'));
+              return (
+                <section key={stage.key} className="min-h-[calc(100vh-190px)] border border-black bg-neutral-50">
+                  <header className="border-b border-black bg-white px-3 py-2">
+                    <div className="text-xs font-black">{stage.label}</div>
+                    <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{records.length} leads</div>
+                  </header>
+                  <div className="space-y-2 p-2">
+                    {records.slice(0, 100).map(contact => (
+                      <button
+                        key={contact.id}
+                        onClick={() => loadProfile(contact.id)}
+                        className="block w-full border border-black bg-white p-2 text-left hover:bg-neutral-100"
+                      >
+                        <div className="truncate text-xs font-black">{contact.organisation || contact.name}</div>
+                        <div className="mt-1 truncate text-[11px] font-medium">{contact.name}</div>
+                        <div className="mt-1 truncate font-mono text-[9px] text-neutral-600">{contact.emailNormalized}</div>
+                      </button>
+                    ))}
+                    {records.length === 0 && <div className="py-10 text-center text-[10px] font-bold text-neutral-400">Empty stage</div>}
+                  </div>
+                </section>
+              );
+            })}
+          </div>
+        )}
       </main>
 
       {/* CSV Import Modal */}

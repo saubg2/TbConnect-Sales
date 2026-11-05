@@ -32,7 +32,29 @@ export const memberships = pgTable('memberships', {
 }));
 
 /**
- * 3. CONTACTS
+ * 3. ORGANIZATIONS
+ * First-class CRM accounts linked to contacts
+ */
+export const organizations = pgTable('organizations', {
+  id: text('id').primaryKey().$defaultFn(defaultId),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  name: text('name').notNull(),
+  type: text('type').notNull().default('Other'), // 'Academic/Hospital' | 'Government' | 'NGO' | 'Private Sector' | 'Other'
+  website: text('website'),
+  address: text('address'),
+  country: text('country'),
+  owner: text('owner'),
+  phone: text('phone'),
+  notes: text('notes'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  workspaceNameIdx: uniqueIndex('organizations_workspace_name_idx').on(table.workspaceId, table.name),
+  workspaceTypeIdx: index('organizations_workspace_type_idx').on(table.workspaceId, table.type),
+}));
+
+/**
+ * 4. CONTACTS
  * Workspace-scoped contacts with suppression and provenance
  */
 export const contacts = pgTable('contacts', {
@@ -40,6 +62,7 @@ export const contacts = pgTable('contacts', {
   workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   emailNormalized: text('email_normalized').notNull(),
+  organizationId: text('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
   organisation: text('organisation'),
   country: text('country'),
   tagsJson: jsonb('tags_json').notNull().default([]),
@@ -183,6 +206,9 @@ export type NewWorkspace = typeof workspaces.$inferInsert;
 
 export type Membership = typeof memberships.$inferSelect;
 export type NewMembership = typeof memberships.$inferInsert;
+
+export type Organization = typeof organizations.$inferSelect;
+export type NewOrganization = typeof organizations.$inferInsert;
 
 export type Contact = typeof contacts.$inferSelect;
 export type NewContact = typeof contacts.$inferInsert;

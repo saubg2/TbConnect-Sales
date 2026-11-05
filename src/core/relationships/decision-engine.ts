@@ -474,7 +474,7 @@ export class DecisionEngine {
             fromName: contact.name,
             fromEmail: contact.emailNormalized,
             subject: params.subject || 'Inbound Reply',
-            summary: decision.summary_update || params.bodyText.substring(0, 200),
+            message: params.bodyText,
           });
 
           if (decision.approval_required && draft) {

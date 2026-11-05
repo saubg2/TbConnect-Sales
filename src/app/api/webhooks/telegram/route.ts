@@ -35,7 +35,7 @@ export async function POST(req: Request) {
             fromName: 'TBConnect Alert Bot',
             fromEmail: 'contact@tbconnect.in',
             subject: 'Account Linked Successfully',
-            summary: `Your Telegram account is now securely linked to Workspace (${linked.workspaceId}). You will receive real-time approval requests and critical alerts here.`,
+            message: `Your Telegram account is now securely linked to Workspace (${linked.workspaceId}). You will receive real-time approval requests and critical alerts here.`,
           });
         } catch (err: any) {
           // Check if this Telegram user is already linked
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
               fromName: 'TBConnect Alert Bot',
               fromEmail: 'contact@tbconnect.in',
               subject: 'Account Already Connected ✅',
-              summary: `Your Telegram account is already securely linked to Workspace (${alreadyLinked.workspaceId}) as ${alreadyLinked.role}. You are all set to receive real-time approval requests and notifications!`,
+              message: `Your Telegram account is already securely linked to Workspace (${alreadyLinked.workspaceId}) as ${alreadyLinked.role}. You are all set to receive real-time approval requests and notifications!`,
             });
           } else {
             // Send error notice back to chat
@@ -53,7 +53,7 @@ export async function POST(req: Request) {
               fromName: 'Linking Error',
               fromEmail: 'contact@tbconnect.in',
               subject: 'Account Linking Failed',
-              summary: err.message || 'Invalid or expired linking token. Please generate a new link in Settings.',
+              message: err.message || 'Invalid or expired linking token. Please generate a new link in Settings.',
             });
           }
         }
@@ -64,14 +64,14 @@ export async function POST(req: Request) {
             fromName: 'TBConnect Alert Bot',
             fromEmail: 'contact@tbconnect.in',
             subject: 'Account Active & Connected ✅',
-            summary: `Your Telegram account is active and connected to Workspace (${alreadyLinked.workspaceId}) as ${alreadyLinked.role}. Real-time approval requests and critical alerts will appear directly in this chat.`,
+            message: `Your Telegram account is active and connected to Workspace (${alreadyLinked.workspaceId}) as ${alreadyLinked.role}. Real-time approval requests and critical alerts will appear directly in this chat.`,
           });
         } else {
           await botService.sendInboundAlert(chatId, {
             fromName: 'TBConnect Alert Bot',
             fromEmail: 'contact@tbconnect.in',
             subject: 'Welcome to TBConnect Outreach Alerts',
-            summary: 'To link your Telegram account to your workspace, please open Settings (https://tbconnect-sales-production.up.railway.app/settings), click "Generate 1-Time Link Token", and open the generated link.',
+            message: 'To link your Telegram account to your workspace, please open Settings (https://tbconnect-sales-production.up.railway.app/settings), click "Generate 1-Time Link Token", and open the generated link.',
           });
         }
       }

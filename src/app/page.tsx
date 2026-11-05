@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import { Play, CheckCircle2, AlertTriangle, ShieldCheck, RefreshCw, Send, FileEdit, XCircle, Clock } from 'lucide-react';
+import { AppHeader } from '@/components/app-header';
 
 export default function DevHarnessPage() {
   const [data, setData] = useState<any>({
@@ -124,62 +124,18 @@ export default function DevHarnessPage() {
   };
 
   return (
-    <main className="max-w-7xl mx-auto px-4 py-8 space-y-8 font-sans">
-      {/* Top Banner */}
-      <header className="border-b border-slate-200 pb-6 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="px-2.5 py-0.5 text-xs font-semibold uppercase tracking-wider rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
-              Phase 0 - 6 Complete
-            </span>
-            <span className="text-xs text-slate-500 font-medium">Exit Gates: Verified</span>
-          </div>
-          <h1 className="text-2xl font-bold text-slate-900 mt-1">Relationship Agent SaaS</h1>
-          <p className="text-sm text-slate-500">
-            Multi-tenant relationship manager with persistent context, structured LLM decisions, and safe-by-default execution.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/contacts"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 border border-slate-200 shadow-sm transition"
-          >
-            Contacts →
-          </Link>
-          <Link
-            href="/agents"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-700 text-xs font-semibold text-white shadow-sm transition"
-          >
-            Agents →
-          </Link>
-          <Link
-            href="/inbox"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 border border-slate-200 shadow-sm transition"
-          >
-            Inbox →
-          </Link>
-          <Link
-            href="/actions"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 border border-slate-200 shadow-sm transition"
-          >
-            Actions →
-          </Link>
-          <Link
-            href="/settings"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 text-xs font-semibold text-slate-700 border border-slate-200 shadow-sm transition"
-          >
-            Settings →
-          </Link>
-          <button
+    <div className="min-h-screen bg-white font-sans text-black">
+      <AppHeader actions={
+        <button
             onClick={fetchData}
             disabled={loading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-white hover:bg-slate-50 text-xs font-medium text-slate-700 border border-slate-200 shadow-sm transition"
+            className="flex items-center gap-1.5 border border-black bg-white px-3 py-1.5 text-xs font-bold text-black transition hover:bg-neutral-100"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             Refresh State
           </button>
-        </div>
-      </header>
+      } />
+      <main className="max-w-7xl mx-auto px-4 py-6 space-y-6">
 
       {/* Contract & Invariants Health Badges */}
       <section className="grid grid-cols-2 md:grid-cols-4 gap-3 text-xs">
@@ -511,6 +467,7 @@ export default function DevHarnessPage() {
           </div>
         </section>
       </div>
-    </main>
+      </main>
+    </div>
   );
 }

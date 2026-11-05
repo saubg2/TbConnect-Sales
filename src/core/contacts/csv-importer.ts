@@ -1,7 +1,8 @@
 import { eq, and, inArray } from 'drizzle-orm';
-import { contacts, events } from '@/db/schema';
+import { contacts, events, organizations } from '@/db/schema';
 import type { Contact } from '@/db/schema';
 import { z } from 'zod';
+import { classifyOrganizationType } from '@/core/organizations/classify';
 
 const EmailSchema = z.string().email();
 
@@ -259,7 +260,29 @@ export class CSVContactImporter {
       existingEmailMap.set(ec.emailNormalized, ec);
     }
 
-    // 3. Prepare inserts
+    // 3. Ensure first-class organization records exist for imported contacts.
+    const organizationNames = Array.from(new Set(
+      Array.from(validRowsByEmail.values())
+        .map(row => row?.organisation?.trim())
+        .filter((name): name is string => !!name)
+    ));
+    if (organizationNames.length > 0) {
+      await this.db.insert(organizations).values(organizationNames.map(name => ({
+        id: crypto.randomUUID(),
+        workspaceId: options.workspaceId,
+        name,
+        type: classifyOrganizationType(name),
+      }))).onConflictDoNothing();
+    }
+    const organizationRows = organizationNames.length > 0
+      ? await this.db.select().from(organizations).where(and(
+          eq(organizations.workspaceId, options.workspaceId),
+          inArray(organizations.name, organizationNames)
+        ))
+      : [];
+    const organizationIdByName = new Map(organizationRows.map((organization: any) => [organization.name, organization.id]));
+
+    // 4. Prepare inserts
     const toInsert: any[] = [];
     const auditEventsToInsert: any[] = [];
 
@@ -280,6 +303,7 @@ export class CSVContactImporter {
         workspaceId: options.workspaceId,
         name: row.name,
         emailNormalized: row.email,
+        organizationId: row.organisation ? organizationIdByName.get(row.organisation.trim()) || null : null,
         organisation: row.organisation || null,
         country: row.country || null,
         tagsJson: combinedTags,
@@ -316,7 +340,7 @@ export class CSVContactImporter {
       });
     }
 
-    // 4. Batch insert contacts and audit events
+    // 5. Batch insert contacts and audit events
     if (toInsert.length > 0) {
       const inserted = await this.db.insert(contacts).values(toInsert).returning();
       result.contacts = inserted;

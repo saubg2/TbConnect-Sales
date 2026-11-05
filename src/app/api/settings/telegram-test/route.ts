@@ -36,7 +36,7 @@ export async function POST(req: Request) {
       fromName: 'TBConnect Alert Bot',
       fromEmail: 'contact@tbconnect.in',
       subject: '✅ Telegram Integration Active',
-      summary: 'Connection confirmed! You will receive real-time approval requests and incoming reply notifications here.',
+      message: 'Connection confirmed! You will receive real-time approval requests and incoming reply notifications here.',
     });
 
     return NextResponse.json({ success: true, result: res });

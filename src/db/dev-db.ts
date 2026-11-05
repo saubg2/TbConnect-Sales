@@ -33,11 +33,29 @@ export async function getDevDb() {
       CONSTRAINT memberships_workspace_user_idx UNIQUE (workspace_id, user_id)
     );
 
+    CREATE TABLE IF NOT EXISTS organizations (
+      id TEXT PRIMARY KEY,
+      workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      type TEXT NOT NULL DEFAULT 'Other',
+      website TEXT,
+      address TEXT,
+      country TEXT,
+      owner TEXT,
+      phone TEXT,
+      notes TEXT,
+      created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+      CONSTRAINT organizations_workspace_name_idx UNIQUE (workspace_id, name)
+    );
+    CREATE INDEX IF NOT EXISTS organizations_workspace_type_idx ON organizations(workspace_id, type);
+
     CREATE TABLE IF NOT EXISTS contacts (
       id TEXT PRIMARY KEY,
       workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       email_normalized TEXT NOT NULL,
+      organization_id TEXT REFERENCES organizations(id) ON DELETE SET NULL,
       organisation TEXT,
       country TEXT,
       tags_json JSONB NOT NULL DEFAULT '[]'::jsonb,
@@ -50,6 +68,7 @@ export async function getDevDb() {
       CONSTRAINT contacts_workspace_email_idx UNIQUE (workspace_id, email_normalized)
     );
     CREATE INDEX IF NOT EXISTS contacts_workspace_suppressed_idx ON contacts(workspace_id, is_suppressed);
+    ALTER TABLE contacts ADD COLUMN IF NOT EXISTS organization_id TEXT REFERENCES organizations(id) ON DELETE SET NULL;
 
     CREATE TABLE IF NOT EXISTS agents (
       id TEXT PRIMARY KEY,

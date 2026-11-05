@@ -2,8 +2,8 @@ import type { Metadata } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
-  title: 'Relationship Agent SaaS (Phase 0 Dev)',
-  description: 'Email-first, multi-tenant AI relationship manager',
+  title: 'TBConnect CRM',
+  description: 'TBConnect relationship and outreach CRM',
 };
 
 export default function RootLayout({

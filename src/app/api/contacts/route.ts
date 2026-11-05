@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getDbAsync } from '@/db/client';
 import { ContactService } from '@/core/contacts/service';
-import { contacts } from '@/db/schema';
+import { contacts, organizations } from '@/db/schema';
 import { eq, and } from 'drizzle-orm';
+import { classifyOrganizationType } from '@/core/organizations/classify';
 
 export async function GET(req: Request) {
   try {
@@ -46,6 +47,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Contact with this email already exists in workspace' }, { status: 409 });
     }
 
+    const organizationName = body.organisation?.trim() || null;
+    let organizationId: string | null = null;
+    if (organizationName) {
+      const [organization] = await db.insert(organizations).values({
+        id: crypto.randomUUID(),
+        workspaceId,
+        name: organizationName,
+        type: classifyOrganizationType(organizationName),
+      }).onConflictDoNothing().returning();
+      if (organization) {
+        organizationId = organization.id;
+      } else {
+        const [existingOrganization] = await db.select().from(organizations).where(and(
+          eq(organizations.workspaceId, workspaceId),
+          eq(organizations.name, organizationName)
+        )).limit(1);
+        organizationId = existingOrganization?.id || null;
+      }
+    }
+
     const [newContact] = await db
       .insert(contacts)
       .values({
@@ -53,7 +74,8 @@ export async function POST(req: Request) {
         workspaceId,
         name: body.name || emailNormalized.split('@')[0],
         emailNormalized,
-        organisation: body.organisation || null,
+        organizationId,
+        organisation: organizationName,
         country: body.country || null,
         tagsJson: body.tags || [],
         sourceJson: { type: 'manual_entry', created_by: body.userId || 'operator' },

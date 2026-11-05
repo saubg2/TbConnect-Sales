@@ -127,14 +127,15 @@ export class TelegramBotService {
       fromName: string;
       fromEmail: string;
       subject: string;
-      summary: string;
+      message: string;
     }
   ) {
     const text = `📥 <b>New Inbound Reply</b>
 
 <b>From:</b> ${escapeHtml(params.fromName)} (${escapeHtml(params.fromEmail)})
 <b>Subject:</b> ${escapeHtml(params.subject)}
-<b>Summary:</b> ${escapeHtml(params.summary)}`;
+<b>Last message:</b>
+${escapeHtml(params.message)}`;
 
     return await this.callApi('sendMessage', {
       chat_id: chatId,
