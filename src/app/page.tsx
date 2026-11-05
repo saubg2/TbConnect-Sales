@@ -4,6 +4,30 @@ import React, { useState, useEffect } from 'react';
 import { Play, CheckCircle2, AlertTriangle, ShieldCheck, RefreshCw, Send, FileEdit, XCircle, Clock } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
 
+function asStringList(value: unknown): string[] {
+  if (Array.isArray(value)) return value.map(String);
+  if (typeof value !== 'string' || !value.trim()) return [];
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.map(String) : [value];
+  } catch {
+    return [value];
+  }
+}
+
+function asObject(value: unknown): Record<string, any> {
+  if (value && typeof value === 'object' && !Array.isArray(value)) return value as Record<string, any>;
+  if (typeof value === 'string') {
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {};
+    } catch {
+      return {};
+    }
+  }
+  return {};
+}
+
 export default function DevHarnessPage() {
   const [data, setData] = useState<any>({
     workspaces: [],
@@ -268,8 +292,9 @@ export default function DevHarnessPage() {
             {data.relationships?.length === 0 ? (
               <div className="text-xs text-slate-500 py-4 text-center">No relationships created yet. Trigger an inbound email above.</div>
             ) : (
-              data.relationships.map((rel: any) => {
+              data.relationships.slice(0, 100).map((rel: any) => {
                 const contact = data.contacts?.find((c: any) => c.id === rel.contactId);
+                const facts = asStringList(rel.factsJson);
                 return (
                   <div key={rel.id} className="p-3.5 rounded-lg border border-slate-200 bg-slate-50 space-y-2 text-xs">
                     <div className="flex items-center justify-between">
@@ -288,9 +313,9 @@ export default function DevHarnessPage() {
                     <div className="text-slate-700 bg-white p-2 rounded border border-slate-200">
                       <span className="text-slate-400 font-medium">Summary:</span> {rel.summary || 'None'}
                     </div>
-                    {rel.factsJson && rel.factsJson.length > 0 && (
+                    {facts.length > 0 && (
                       <div className="flex flex-wrap gap-1">
-                        {rel.factsJson.map((f: string, i: number) => (
+                        {facts.map((f: string, i: number) => (
                           <span key={i} className="px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 text-[10px]">
                             fact: {f}
                           </span>
@@ -314,8 +339,8 @@ export default function DevHarnessPage() {
             {data.actions?.length === 0 ? (
               <div className="text-xs text-slate-500 py-4 text-center">No actions queued. Send a message to see autonomous actions generated.</div>
             ) : (
-              data.actions.map((act: any) => {
-                const payload = act.payloadJson || {};
+              data.actions.slice(0, 100).map((act: any) => {
+                const payload = asObject(act.payloadJson);
                 const draft = payload.draft || {};
                 const isAwaiting = act.status === 'AWAITING_APPROVAL';
 
@@ -334,7 +359,7 @@ export default function DevHarnessPage() {
                           {act.status}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-500">v{act.payloadJson?.draft?.draft_version || 1}</span>
+                      <span className="text-[10px] text-slate-500">v{payload.draft?.draft_version || 1}</span>
                     </div>
 
                     <p className="text-slate-600 text-[11px]"><span className="text-slate-400 font-medium">Reason:</span> {act.reason}</p>
@@ -420,7 +445,7 @@ export default function DevHarnessPage() {
             {data.messages?.length === 0 ? (
               <div className="text-xs text-slate-500 py-4 text-center">No messages ingested yet.</div>
             ) : (
-              data.messages.map((msg: any) => (
+              data.messages.slice(0, 100).map((msg: any) => (
                 <div key={msg.id} className={`p-3 rounded-lg border text-xs space-y-1 ${
                   msg.direction === 'INBOUND' ? 'bg-slate-50 border-slate-200' : 'bg-indigo-50/50 border-indigo-200'
                 }`}>
