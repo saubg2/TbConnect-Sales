@@ -15,7 +15,7 @@ import {
   PauseCircle,
   RefreshCw,
 } from 'lucide-react';
-import Link from 'next/link';
+import { AppHeader } from '@/components/app-header';
 
 export default function InboxPage() {
   const [relationships, setRelationships] = useState<any[]>([]);
@@ -118,44 +118,14 @@ export default function InboxPage() {
 
   return (
     <div className="sketch-page min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-300 bg-white sticky top-0 z-10 px-8 py-5 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-4">
-          <Link href="/" className="text-sm font-bold text-slate-700 hover:text-indigo-600 transition">
-            ← Home
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/contacts" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Contacts
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/agents" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Agents
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <div className="flex items-center gap-2">
-            <Inbox className="w-5 h-5 text-indigo-600" />
-            <h1 className="text-lg font-black text-slate-900">Inbox</h1>
-          </div>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/actions" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Actions
-          </Link>
-          <span className="text-slate-300 font-bold">|</span>
-          <Link href="/settings" className="text-sm font-semibold text-slate-700 hover:text-indigo-600 transition">
-            Settings
-          </Link>
-        </div>
-
-        <button
+      <AppHeader actions={<button
           onClick={fetchInboxData}
           disabled={loading}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-slate-50 text-xs font-bold text-slate-800 border-2 border-slate-300 shadow-sm transition"
+          className="flex items-center gap-2 border border-black bg-white px-3 py-1.5 text-xs font-bold"
         >
           <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           Refresh Inbox
-        </button>
-      </header>
+        </button>} />
 
       {/* Inbox Split View */}
       <div className="flex-1 flex overflow-hidden">

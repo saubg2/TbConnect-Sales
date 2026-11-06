@@ -18,7 +18,7 @@ body {
 
 /* Shared monochrome sketch language for every application surface. */
 .sketch-page {
-  background: #faf8f2 !important;
+  background: #fbfaf7 !important;
   color: #24231f !important;
 }
 
@@ -28,23 +28,23 @@ body {
 }
 
 .sketch-page [class*="bg-indigo-50"] {
-  background-color: #eef0fb !important;
+  background-color: #f0f2f6 !important;
 }
 
 .sketch-page [class*="bg-emerald-50"] {
-  background-color: #edf6ed !important;
+  background-color: #f4f2ec !important;
 }
 
 .sketch-page [class*="bg-amber-50"] {
-  background-color: #fff4d8 !important;
+  background-color: #faf3e3 !important;
 }
 
 .sketch-page [class*="bg-rose-50"] {
-  background-color: #fbeceb !important;
+  background-color: #f8eeee !important;
 }
 
 .sketch-page [class*="bg-sky-50"] {
-  background-color: #eaf5f7 !important;
+  background-color: #eef3f4 !important;
 }
 
 .sketch-page [class*="bg-indigo-6"],
