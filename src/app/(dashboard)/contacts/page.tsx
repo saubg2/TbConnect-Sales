@@ -16,6 +16,10 @@ import { AppHeader } from '@/components/app-header';
 import { CrmFilterBar } from '@/components/crm-filter-bar';
 
 type CrmTab = 'contacts' | 'organizations' | 'pipeline';
+const canonicalOrganization = (value: unknown) => String(value || '').normalize('NFKD').toLowerCase()
+  .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
+const cleanOrganizationName = (value: unknown) => String(value || '').trim()
+  .replace(/\s*[-–—]+\s*/g, ' ').replace(/\s+/g, ' ');
 type OrganizationSummary = {
   id: string | null;
   name: string;
@@ -35,10 +39,10 @@ export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
-  const [suppressedFilter, setSuppressedFilter] = useState<'all' | 'active' | 'suppressed'>('all');
-  const [countryFilter, setCountryFilter] = useState('');
-  const [organizationFilter, setOrganizationFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
+  const [statusFilters, setStatusFilters] = useState<string[]>([]);
+  const [countryFilters, setCountryFilters] = useState<string[]>([]);
+  const [organizationFilters, setOrganizationFilters] = useState<string[]>([]);
+  const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<CrmTab>('contacts');
 
   // Modal & Drawer State
@@ -157,32 +161,38 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
     const query = search.trim().toLowerCase();
     const matchesSearch = !query || [contact.name, contact.emailNormalized, contact.organisation, contact.country]
       .some(value => String(value || '').toLowerCase().includes(query));
-    const matchesStatus = suppressedFilter === 'all'
-      || (suppressedFilter === 'active' && !contact.isSuppressed)
-      || (suppressedFilter === 'suppressed' && contact.isSuppressed);
+    const matchesStatus = statusFilters.length === 0 || statusFilters.includes(contact.isSuppressed ? 'suppressed' : 'active');
     const effectiveCountry = contact.country || '';
-    const matchesCountry = !countryFilter
-      || (countryFilter === '__unknown__' ? !effectiveCountry : effectiveCountry === countryFilter);
-    const matchesOrganization = !organizationFilter
-      || (organizationFilter === '__unknown__' ? !contact.organisation : contact.organisation === organizationFilter);
-    const matchesType = !typeFilter || (contact.organizationType || 'Other') === typeFilter;
+    const matchesCountry = countryFilters.length === 0 || countryFilters.includes(effectiveCountry || '__unknown__');
+    const organizationKey = contact.organisation ? canonicalOrganization(contact.organisation) : '__unknown__';
+    const matchesOrganization = organizationFilters.length === 0 || organizationFilters.includes(organizationKey);
+    const matchesType = typeFilters.length === 0 || typeFilters.includes(contact.organizationType || 'Other');
     return matchesSearch && matchesStatus && matchesCountry && matchesOrganization && matchesType;
   });
 
-  const countryOptions = Array.from(new Set(contacts
+  const countryOptions = ['__unknown__', ...Array.from(new Set(contacts
     .map(contact => contact.country)
-    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
-  const organizationOptions = Array.from(new Set(contacts
-    .map(contact => contact.organisation)
-    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
+    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b))]
+    .map(value => ({ value, label: value === '__unknown__' ? 'Unknown country' : value }));
+  const organizationLabels = contacts.reduce<Map<string, string>>((map, contact) => {
+    if (contact.organisation) {
+      const key = canonicalOrganization(contact.organisation);
+      if (!map.has(key)) map.set(key, cleanOrganizationName(contact.organisation));
+    }
+    return map;
+  }, new Map());
+  const organizationOptions = [{ value: '__unknown__', label: 'No organization' }, ...Array.from(organizationLabels)
+    .map(([value, label]) => ({ value, label })).sort((a, b) => a.label.localeCompare(b.label))];
   const typeOptions = Array.from(new Set(contacts
     .map(contact => contact.organizationType || 'Other')
-    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
+    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b)).map(value => ({ value, label: value }));
 
   const organizationMap = visibleContacts.reduce<Map<string, OrganizationSummary>>((grouped, contact) => {
-    const name = contact.organisation || 'No organization';
+    const name = contact.organisation
+      ? (organizationLabels.get(canonicalOrganization(contact.organisation)) || cleanOrganizationName(contact.organisation))
+      : 'No organization';
     const country = contact.country || 'Unknown';
-    const groupKey = `${name}::${country}`;
+    const groupKey = `${canonicalOrganization(name) || '__unknown__'}::${country.toLowerCase()}`;
     const current = grouped.get(groupKey) || {
       id: contact.organizationId || null,
       name,
@@ -259,17 +269,18 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
         <CrmFilterBar
           search={search}
           onSearchChange={setSearch}
-          country={countryFilter}
-          onCountryChange={setCountryFilter}
-          organization={organizationFilter}
-          onOrganizationChange={setOrganizationFilter}
-          status={suppressedFilter}
-          onStatusChange={setSuppressedFilter}
           countries={countryOptions}
+          selectedCountries={countryFilters}
+          onCountriesChange={setCountryFilters}
           organizations={organizationOptions}
-          type={typeFilter}
-          onTypeChange={setTypeFilter}
+          selectedOrganizations={organizationFilters}
+          onOrganizationsChange={setOrganizationFilters}
           types={typeOptions}
+          selectedTypes={typeFilters}
+          onTypesChange={setTypeFilters}
+          statuses={[{ value: 'active', label: 'Eligible' }, { value: 'suppressed', label: 'Suppressed' }]}
+          selectedStatuses={statusFilters}
+          onStatusesChange={setStatusFilters}
           resultCount={visibleContacts.length}
         />
 
