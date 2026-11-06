@@ -30,7 +30,7 @@ export function CrmFilterBar(props: Props) {
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2 border border-[#c9c5ba] bg-[#fffdf8] p-2">
+    <div className="flex flex-wrap items-center gap-2 bg-[#f6f2e9] p-2">
       <div className="flex items-center gap-1.5 px-1 text-[10px] font-black uppercase tracking-wider text-neutral-600">
         <Filter className="h-3.5 w-3.5" /> Filters
       </div>

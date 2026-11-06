@@ -83,7 +83,7 @@ body {
 .sketch-page [class*="border-amber-"],
 .sketch-page [class*="border-rose-"],
 .sketch-page [class*="border-sky-"] {
-  border-color: #c9c5ba !important;
+  border-color: #e7e2d8 !important;
 }
 
 .sketch-page [class*="shadow"] {
@@ -116,17 +116,17 @@ body {
 }
 
 .sketch-page table tr {
-  border-color: #ddd9cf !important;
+  border-color: #ebe7df !important;
 }
 
 .sketch-page section,
 .sketch-page aside,
 .sketch-page main > div {
-  border-color: #c9c5ba;
+  border-color: transparent !important;
 }
 
 .sketch-page input,
 .sketch-page textarea,
 .sketch-page select {
-  border-color: #b8b4aa !important;
+  border-color: #d8d3c9 !important;
 }

@@ -17,7 +17,7 @@ export function AppHeader({ actions }: { actions?: ReactNode }) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b-2 border-black bg-white px-5">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-[#e5e1d8] bg-[#fffefa] px-5">
       <div className="flex h-full items-center">
         <Link href="/" className="mr-8 text-sm font-black tracking-[-0.02em] text-black">
           TBCONNECT
@@ -29,8 +29,8 @@ export function AppHeader({ actions }: { actions?: ReactNode }) {
               <Link
                 key={link.href}
                 href={link.href}
-                className={`flex h-full items-center border-x border-transparent px-4 text-xs font-bold transition ${
-                  active ? 'border-black bg-black text-white' : 'text-black hover:bg-neutral-100'
+                className={`flex h-full items-center px-4 text-xs font-bold transition ${
+                  active ? 'bg-black text-white' : 'text-black hover:bg-[#f3efe6]'
                 }`}
               >
                 {link.label}
