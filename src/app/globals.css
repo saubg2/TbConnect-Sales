@@ -18,18 +18,33 @@ body {
 
 /* Shared monochrome sketch language for every application surface. */
 .sketch-page {
-  background: #fff !important;
-  color: #000 !important;
+  background: #faf8f2 !important;
+  color: #24231f !important;
 }
 
 .sketch-page [class*="bg-slate-"],
-.sketch-page [class*="bg-neutral-"],
-.sketch-page [class*="bg-indigo-50"],
-.sketch-page [class*="bg-emerald-50"],
-.sketch-page [class*="bg-amber-50"],
-.sketch-page [class*="bg-rose-50"],
+.sketch-page [class*="bg-neutral-"] {
+  background-color: #f3f0e8 !important;
+}
+
+.sketch-page [class*="bg-indigo-50"] {
+  background-color: #eef0fb !important;
+}
+
+.sketch-page [class*="bg-emerald-50"] {
+  background-color: #edf6ed !important;
+}
+
+.sketch-page [class*="bg-amber-50"] {
+  background-color: #fff4d8 !important;
+}
+
+.sketch-page [class*="bg-rose-50"] {
+  background-color: #fbeceb !important;
+}
+
 .sketch-page [class*="bg-sky-50"] {
-  background-color: #fff !important;
+  background-color: #eaf5f7 !important;
 }
 
 .sketch-page [class*="bg-indigo-6"],
@@ -51,7 +66,7 @@ body {
 .sketch-page [class*="text-amber-"],
 .sketch-page [class*="text-rose-"],
 .sketch-page [class*="text-sky-"] {
-  color: #000 !important;
+  color: #33312c !important;
 }
 
 .sketch-page [class*="bg-indigo-6"] [class*="text-"],
@@ -68,16 +83,16 @@ body {
 .sketch-page [class*="border-amber-"],
 .sketch-page [class*="border-rose-"],
 .sketch-page [class*="border-sky-"] {
-  border-color: #000 !important;
+  border-color: #c9c5ba !important;
 }
 
 .sketch-page [class*="shadow"] {
-  box-shadow: none !important;
+  box-shadow: 0 1px 2px rgb(60 54 44 / 7%) !important;
 }
 
 .sketch-page .rounded,
 .sketch-page [class*="rounded-"] {
-  border-radius: 0 !important;
+  border-radius: 5px !important;
 }
 
 .sketch-page input,
@@ -91,4 +106,27 @@ body {
 .sketch-page button,
 .sketch-page a {
   box-shadow: none !important;
+}
+
+/* Keep the CRM grid readable without drawing a box around every cell. */
+.sketch-page table th,
+.sketch-page table td {
+  border-left-color: transparent !important;
+  border-right-color: transparent !important;
+}
+
+.sketch-page table tr {
+  border-color: #ddd9cf !important;
+}
+
+.sketch-page section,
+.sketch-page aside,
+.sketch-page main > div {
+  border-color: #c9c5ba;
+}
+
+.sketch-page input,
+.sketch-page textarea,
+.sketch-page select {
+  border-color: #b8b4aa !important;
 }
