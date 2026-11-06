@@ -6,7 +6,6 @@ import {
   Building2,
   KanbanSquare,
   Upload,
-  Search,
   ShieldAlert,
   ShieldCheck,
   CheckCircle2,
@@ -14,6 +13,7 @@ import {
   X,
 } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
+import { CrmFilterBar } from '@/components/crm-filter-bar';
 
 type CrmTab = 'contacts' | 'organizations' | 'pipeline';
 type OrganizationSummary = {
@@ -36,6 +36,9 @@ export default function ContactsPage() {
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
   const [suppressedFilter, setSuppressedFilter] = useState<'all' | 'active' | 'suppressed'>('all');
+  const [countryFilter, setCountryFilter] = useState('');
+  const [organizationFilter, setOrganizationFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
   const [activeTab, setActiveTab] = useState<CrmTab>('contacts');
 
   // Modal & Drawer State
@@ -157,12 +160,30 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
     const matchesStatus = suppressedFilter === 'all'
       || (suppressedFilter === 'active' && !contact.isSuppressed)
       || (suppressedFilter === 'suppressed' && contact.isSuppressed);
-    return matchesSearch && matchesStatus;
+    const effectiveCountry = contact.country || '';
+    const matchesCountry = !countryFilter
+      || (countryFilter === '__unknown__' ? !effectiveCountry : effectiveCountry === countryFilter);
+    const matchesOrganization = !organizationFilter
+      || (organizationFilter === '__unknown__' ? !contact.organisation : contact.organisation === organizationFilter);
+    const matchesType = !typeFilter || (contact.organizationType || 'Other') === typeFilter;
+    return matchesSearch && matchesStatus && matchesCountry && matchesOrganization && matchesType;
   });
+
+  const countryOptions = Array.from(new Set(contacts
+    .map(contact => contact.country)
+    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
+  const organizationOptions = Array.from(new Set(contacts
+    .map(contact => contact.organisation)
+    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
+  const typeOptions = Array.from(new Set(contacts
+    .map(contact => contact.organizationType || 'Other')
+    .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b));
 
   const organizationMap = visibleContacts.reduce<Map<string, OrganizationSummary>>((grouped, contact) => {
     const name = contact.organisation || 'No organization';
-    const current = grouped.get(name) || {
+    const country = contact.country || 'Unknown';
+    const groupKey = `${name}::${country}`;
+    const current = grouped.get(groupKey) || {
       id: contact.organizationId || null,
       name,
       type: contact.organizationType || 'Other',
@@ -180,19 +201,19 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
     if (contact.country) current.countries.add(contact.country);
     if (!contact.isSuppressed) current.active += 1;
     current.stages.add(contact.stage || 'NEW');
-    grouped.set(name, current);
+    grouped.set(groupKey, current);
     return grouped;
   }, new Map<string, OrganizationSummary>());
   const organizations = Array.from(organizationMap.values())
     .sort((a, b) => b.contacts - a.contacts || a.name.localeCompare(b.name));
 
   const pipelineStages = [
-    { key: 'NEW', label: 'Qualification' },
+    { key: 'NEW', label: 'New' },
     { key: 'OUTREACH', label: 'Outreach' },
-    { key: 'ENGAGED', label: 'Needs Analysis' },
-    { key: 'NEGOTIATING', label: 'Proposal / Review' },
-    { key: 'COMPLETED', label: 'Closed Won' },
-    { key: 'STALLED,OPTED_OUT', label: 'Closed Lost' },
+    { key: 'ENGAGED', label: 'Engaged' },
+    { key: 'NEGOTIATING', label: 'Negotiating' },
+    { key: 'COMPLETED', label: 'Completed' },
+    { key: 'STALLED,OPTED_OUT', label: 'Stalled / Opted Out' },
   ];
 
   return (
@@ -235,39 +256,22 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
           </div>
         </div>
 
-        <div className="flex items-center justify-between gap-3 border border-black bg-white p-2">
-          <div className="relative w-full max-w-md">
-            <Search className="absolute left-2.5 top-2 h-3.5 w-3.5 text-black" />
-            <input
-              type="text"
-              placeholder={`Search ${activeTab === 'pipeline' ? 'pipeline' : activeTab}...`}
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full border border-black bg-white py-1.5 pl-8 pr-3 text-xs font-medium text-black outline-none focus:ring-1 focus:ring-black"
-            />
-          </div>
-
-          <div className="flex items-center border border-black text-[11px] font-bold">
-            <button
-              onClick={() => setSuppressedFilter('all')}
-              className={`px-3 py-1.5 ${suppressedFilter === 'all' ? 'bg-black text-white' : 'bg-white text-black'}`}
-            >
-              All
-            </button>
-            <button
-              onClick={() => setSuppressedFilter('active')}
-              className={`border-l border-black px-3 py-1.5 ${suppressedFilter === 'active' ? 'bg-black text-white' : 'bg-white text-black'}`}
-            >
-              Eligible
-            </button>
-            <button
-              onClick={() => setSuppressedFilter('suppressed')}
-              className={`border-l border-black px-3 py-1.5 ${suppressedFilter === 'suppressed' ? 'bg-black text-white' : 'bg-white text-black'}`}
-            >
-              Suppressed
-            </button>
-          </div>
-        </div>
+        <CrmFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          country={countryFilter}
+          onCountryChange={setCountryFilter}
+          organization={organizationFilter}
+          onOrganizationChange={setOrganizationFilter}
+          status={suppressedFilter}
+          onStatusChange={setSuppressedFilter}
+          countries={countryOptions}
+          organizations={organizationOptions}
+          type={typeFilter}
+          onTypeChange={setTypeFilter}
+          types={typeOptions}
+          resultCount={visibleContacts.length}
+        />
 
         {activeTab === 'contacts' && (
         <div className="max-h-[calc(100vh-180px)] overflow-auto border border-black bg-white">
@@ -300,7 +304,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{contact.name}</td>
                     <td className="border-r border-black/20 px-3 py-2 font-mono text-[11px]">{contact.emailNormalized}</td>
                     <td className="border-r border-black/20 px-3 py-2">{contact.organisation || '—'}</td>
-                    <td className="border-r border-black/20 px-3 py-2">{contact.country || '—'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{contact.country || 'Unknown'}</td>
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{contact.stage || 'NEW'}</td>
                     <td className="border-r border-black/20 px-3 py-2">
                       <span className={`inline-flex items-center gap-1 border border-black px-1.5 py-0.5 text-[10px] font-bold ${contact.isSuppressed ? 'bg-neutral-200' : 'bg-white'}`}>
@@ -345,7 +349,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
               </thead>
               <tbody>
                 {organizations.map(org => (
-                  <tr key={org.name} className="border-b border-black/20 hover:bg-neutral-100">
+                  <tr key={`${org.name}-${Array.from(org.countries).join('-') || 'unknown'}`} className="border-b border-black/20 hover:bg-neutral-100">
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{org.name}</td>
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{org.type}</td>
                     <td className="border-r border-black/20 px-3 py-2">{org.contacts}</td>
