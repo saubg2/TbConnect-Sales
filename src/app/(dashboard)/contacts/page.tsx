@@ -10,6 +10,7 @@ import {
   ShieldCheck,
   CheckCircle2,
   FileSpreadsheet,
+  Plus,
   X,
 } from 'lucide-react';
 import { AppHeader } from '@/components/app-header';
@@ -20,6 +21,17 @@ const canonicalOrganization = (value: unknown) => String(value || '').normalize(
   .replace(/&/g, ' and ').replace(/[^a-z0-9]+/g, ' ').trim().replace(/\s+/g, ' ');
 const cleanOrganizationName = (value: unknown) => String(value || '').trim()
   .replace(/\s*[-–—]+\s*/g, ' ').replace(/\s+/g, ' ');
+const regionNames = typeof Intl !== 'undefined' && 'DisplayNames' in Intl
+  ? new Intl.DisplayNames(['en'], { type: 'region' })
+  : null;
+const countryName = (value: unknown) => {
+  const country = String(value || '').trim();
+  if (!country) return 'Unknown';
+  if (/^[A-Za-z]{2}$/.test(country)) {
+    try { return regionNames?.of(country.toUpperCase()) || country.toUpperCase(); } catch { return country; }
+  }
+  return country;
+};
 type OrganizationSummary = {
   id: string | null;
   name: string;
@@ -35,9 +47,31 @@ type OrganizationSummary = {
   stages: Set<string>;
 };
 
+function AddField({ label, value, onChange, type = 'text' }: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  type?: string;
+}) {
+  return (
+    <label className="space-y-1 text-xs font-bold">
+      {label}
+      <input
+        type={type}
+        value={value || ''}
+        onChange={event => onChange(event.target.value)}
+        className="w-full border border-black bg-white px-2 py-2 font-medium"
+      />
+    </label>
+  );
+}
+
 export default function ContactsPage() {
   const [contacts, setContacts] = useState<any[]>([]);
+  const [deals, setDeals] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [contactPage, setContactPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [countryFilters, setCountryFilters] = useState<string[]>([]);
@@ -47,6 +81,11 @@ export default function ContactsPage() {
 
   // Modal & Drawer State
   const [showImportModal, setShowImportModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [addKind, setAddKind] = useState<'contact' | 'organization' | 'lead'>('contact');
+  const [addForm, setAddForm] = useState<Record<string, string>>({ stage: 'QUALIFICATION', probability: '10' });
+  const [addLoading, setAddLoading] = useState(false);
+  const [addError, setAddError] = useState<string | null>(null);
   const [csvInput, setCsvInput] = useState('');
   const [importLoading, setImportLoading] = useState(false);
   const [importResult, setImportResult] = useState<any>(null);
@@ -57,14 +96,18 @@ export default function ContactsPage() {
 
   const fetchContacts = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const res = await fetch('/api/contacts/crm?workspaceId=ws_default');
       const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Unable to load contacts');
       if (data && data.records) {
         setContacts(data.records);
+        setDeals(data.deals || []);
       }
     } catch (e) {
       console.error(e);
+      setLoadError(e instanceof Error ? e.message : 'Unable to load contacts');
     } finally {
       setLoading(false);
     }
@@ -72,7 +115,27 @@ export default function ContactsPage() {
 
   useEffect(() => {
     fetchContacts();
+    const params = new URLSearchParams(window.location.search);
+    const requestedTab = params.get('tab');
+    if (requestedTab === 'contacts' || requestedTab === 'organizations' || requestedTab === 'pipeline') {
+      setActiveTab(requestedTab);
+    }
+    const requestedOrganization = params.get('organization');
+    if (requestedOrganization) setOrganizationFilters([requestedOrganization]);
   }, []);
+
+  const selectTab = (tab: CrmTab, organization?: string) => {
+    setActiveTab(tab);
+    const params = new URLSearchParams(window.location.search);
+    params.set('tab', tab);
+    if (organization) {
+      params.set('organization', organization);
+      setOrganizationFilters([organization]);
+    } else {
+      params.delete('organization');
+    }
+    window.history.pushState({}, '', `${window.location.pathname}?${params.toString()}`);
+  };
 
   const loadProfile = async (contactId: string) => {
     setSelectedContactId(contactId);
@@ -133,6 +196,37 @@ export default function ContactsPage() {
     }
   };
 
+  const handleAdd = async () => {
+    setAddLoading(true);
+    setAddError(null);
+    try {
+      const endpoint = addKind === 'contact' ? '/api/contacts' : addKind === 'organization' ? '/api/organizations' : '/api/deals';
+      const selectedContact = contacts.find(contact => contact.id === addForm.contactId);
+      const payload = addKind === 'contact'
+        ? { workspaceId: 'ws_default', name: addForm.name, email: addForm.email, organisation: addForm.organisation, country: addForm.country }
+        : addKind === 'organization'
+          ? { workspaceId: 'ws_default', name: addForm.name, type: addForm.type, website: addForm.website,
+              country: addForm.country, owner: addForm.owner, phone: addForm.phone, notes: addForm.notes }
+          : { workspaceId: 'ws_default', name: addForm.name, contactId: addForm.contactId || null,
+              organizationId: addForm.organizationId || selectedContact?.organizationId || null,
+              stage: addForm.stage || 'QUALIFICATION', amount: addForm.amount, closingDate: addForm.closingDate,
+              probability: addForm.probability || '0', owner: addForm.owner, rep: addForm.rep, description: addForm.description };
+      const response = await fetch(endpoint, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error || `Unable to add ${addKind}`);
+      setShowAddModal(false);
+      setAddForm({ stage: 'QUALIFICATION', probability: '10' });
+      await fetchContacts();
+      selectTab(addKind === 'organization' ? 'organizations' : addKind === 'lead' ? 'pipeline' : 'contacts');
+    } catch (error) {
+      setAddError(error instanceof Error ? error.message : `Unable to add ${addKind}`);
+    } finally {
+      setAddLoading(false);
+    }
+  };
+
   const loadSampleCSV = (count: 2 | 5 | 100) => {
     if (count === 2) {
       setCsvInput(`Name,Email,Company,Country,Tags,Suppressed,Reason
@@ -169,11 +263,25 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
     const matchesType = typeFilters.length === 0 || typeFilters.includes(contact.organizationType || 'Other');
     return matchesSearch && matchesStatus && matchesCountry && matchesOrganization && matchesType;
   });
+  const CONTACTS_PER_PAGE = 100;
+  const contactPageCount = Math.max(1, Math.ceil(visibleContacts.length / CONTACTS_PER_PAGE));
+  const pagedContacts = visibleContacts.slice(
+    (contactPage - 1) * CONTACTS_PER_PAGE,
+    contactPage * CONTACTS_PER_PAGE,
+  );
+
+  useEffect(() => {
+    setContactPage(1);
+  }, [search, statusFilters, countryFilters, organizationFilters, typeFilters]);
+
+  useEffect(() => {
+    if (contactPage > contactPageCount) setContactPage(contactPageCount);
+  }, [contactPage, contactPageCount]);
 
   const countryOptions = ['__unknown__', ...Array.from(new Set(contacts
     .map(contact => contact.country)
     .filter(Boolean) as string[])).sort((a, b) => a.localeCompare(b))]
-    .map(value => ({ value, label: value === '__unknown__' ? 'Unknown country' : value }));
+    .map(value => ({ value, label: value === '__unknown__' ? 'Unknown country' : countryName(value) }));
   const organizationLabels = contacts.reduce<Map<string, string>>((map, contact) => {
     if (contact.organisation) {
       const key = canonicalOrganization(contact.organisation);
@@ -192,7 +300,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
       ? (organizationLabels.get(canonicalOrganization(contact.organisation)) || cleanOrganizationName(contact.organisation))
       : 'No organization';
     const country = contact.country || 'Unknown';
-    const groupKey = `${canonicalOrganization(name) || '__unknown__'}::${country.toLowerCase()}`;
+    const groupKey = canonicalOrganization(name) || '__unknown__';
     const current = grouped.get(groupKey) || {
       id: contact.organizationId || null,
       name,
@@ -221,6 +329,8 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
     { key: 'NEW', label: 'New' },
     { key: 'OUTREACH', label: 'Outreach' },
     { key: 'ENGAGED', label: 'Engaged' },
+    { key: 'DEMO_DONE', label: 'Demo Done' },
+    { key: 'PROPOSAL', label: 'Proposal' },
     { key: 'NEGOTIATING', label: 'Negotiating' },
     { key: 'COMPLETED', label: 'Completed' },
     { key: 'STALLED,OPTED_OUT', label: 'Stalled / Opted Out' },
@@ -229,6 +339,13 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
   return (
     <div className="sketch-page min-h-screen bg-white text-black font-sans">
       <AppHeader actions={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => { setShowAddModal(true); setAddError(null); }}
+            className="flex items-center gap-1.5 border border-black bg-white px-3 py-1.5 text-xs font-bold text-black hover:bg-neutral-100"
+          >
+            <Plus className="h-4 w-4" /> Add
+          </button>
         <button
             onClick={() => {
               setShowImportModal(true);
@@ -239,6 +356,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
             <Upload className="w-4 h-4" />
             Import CSV
           </button>
+        </div>
       } />
 
       <main className="w-full px-5 py-4 space-y-3">
@@ -251,7 +369,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
             ] as const).map(([key, label, Icon]) => (
               <button
                 key={key}
-                onClick={() => setActiveTab(key)}
+                onClick={() => selectTab(key)}
                 className={`flex items-center gap-2 border-x border-t border-black px-5 py-2 text-xs font-black ${
                   activeTab === key ? 'bg-black text-white' : 'bg-white text-black hover:bg-neutral-100'
                 }`}
@@ -285,7 +403,34 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
         />
 
         {activeTab === 'contacts' && (
-        <div className="max-h-[calc(100vh-180px)] overflow-auto border border-black bg-white">
+        <div className="border border-black bg-white">
+          <div className="flex items-center justify-between border-b border-black bg-neutral-50 px-3 py-2 text-[10px] font-bold uppercase tracking-wider">
+            <span>
+              {loading ? 'Loading contacts…' : loadError ? 'Contacts unavailable' : `${visibleContacts.length} contacts`}
+            </span>
+            {!loading && !loadError && visibleContacts.length > CONTACTS_PER_PAGE && (
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  disabled={contactPage === 1}
+                  onClick={() => setContactPage(page => Math.max(1, page - 1))}
+                  className="border border-black bg-white px-2 py-1 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  Previous
+                </button>
+                <span>Page {contactPage} of {contactPageCount}</span>
+                <button
+                  type="button"
+                  disabled={contactPage === contactPageCount}
+                  onClick={() => setContactPage(page => Math.min(contactPageCount, page + 1))}
+                  className="border border-black bg-white px-2 py-1 disabled:cursor-not-allowed disabled:opacity-30"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="max-h-[calc(100vh-220px)] overflow-auto">
           <table className="w-full border-collapse text-left text-xs">
             <thead className="sticky top-0 z-10 border-b border-black bg-neutral-100 text-[10px] font-black uppercase tracking-wider text-black">
               <tr>
@@ -299,14 +444,26 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
               </tr>
             </thead>
             <tbody>
-              {visibleContacts.length === 0 ? (
+              {loading ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center font-bold text-neutral-500">
+                    Loading contacts…
+                  </td>
+                </tr>
+              ) : loadError ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center font-bold text-red-700">
+                    {loadError}. Refresh the page to try again.
+                  </td>
+                </tr>
+              ) : visibleContacts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="py-12 text-center font-bold text-neutral-500">
                     No contacts match this view.
                   </td>
                 </tr>
               ) : (
-                visibleContacts.map((contact) => (
+                pagedContacts.map((contact) => (
                   <tr
                     key={contact.id}
                     className="cursor-pointer border-b border-black/20 font-medium hover:bg-neutral-100"
@@ -315,7 +472,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{contact.name}</td>
                     <td className="border-r border-black/20 px-3 py-2 font-mono text-[11px]">{contact.emailNormalized}</td>
                     <td className="border-r border-black/20 px-3 py-2">{contact.organisation || '—'}</td>
-                    <td className="border-r border-black/20 px-3 py-2">{contact.country || 'Unknown'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{countryName(contact.country)}</td>
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{contact.stage || 'NEW'}</td>
                     <td className="border-r border-black/20 px-3 py-2">
                       <span className={`inline-flex items-center gap-1 border border-black px-1.5 py-0.5 text-[10px] font-bold ${contact.isSuppressed ? 'bg-neutral-200' : 'bg-white'}`}>
@@ -339,6 +496,7 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
               )}
             </tbody>
           </table>
+          </div>
         </div>
         )}
 
@@ -363,9 +521,20 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
                   <tr key={`${org.name}-${Array.from(org.countries).join('-') || 'unknown'}`} className="border-b border-black/20 hover:bg-neutral-100">
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{org.name}</td>
                     <td className="border-r border-black/20 px-3 py-2 font-bold">{org.type}</td>
-                    <td className="border-r border-black/20 px-3 py-2">{org.contacts}</td>
+                    <td className="border-r border-black/20 px-3 py-2">
+                      <button
+                        type="button"
+                        onClick={() => selectTab('contacts', org.name === 'No organization'
+                          ? '__unknown__'
+                          : canonicalOrganization(org.name))}
+                        className="font-black underline underline-offset-2 hover:bg-black hover:text-white"
+                        title={`View contacts at ${org.name}`}
+                      >
+                        {org.contacts}
+                      </button>
+                    </td>
                     <td className="border-r border-black/20 px-3 py-2">{org.active}</td>
-                    <td className="border-r border-black/20 px-3 py-2">{Array.from(org.countries).join(', ') || '—'}</td>
+                    <td className="border-r border-black/20 px-3 py-2">{Array.from(org.countries).map(countryName).join(', ') || '—'}</td>
                     <td className="border-r border-black/20 px-3 py-2">{org.website || '—'}</td>
                     <td className="border-r border-black/20 px-3 py-2">{org.owner || '—'}</td>
                     <td className="border-r border-black/20 px-3 py-2">{org.phone || '—'}</td>
@@ -378,15 +547,21 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
         )}
 
         {activeTab === 'pipeline' && (
-          <div className="grid min-w-[1100px] grid-cols-6 gap-2 overflow-x-auto pb-3">
+          <div className="grid min-w-[1500px] grid-cols-8 gap-2 overflow-x-auto pb-3">
             {pipelineStages.map(stage => {
               const keys = stage.key.split(',');
               const records = visibleContacts.filter(contact => keys.includes(contact.stage || 'NEW'));
+              const dealStageMap: Record<string, string[]> = {
+                NEW: ['QUALIFICATION'], ENGAGED: ['NEEDS_ANALYSIS'], DEMO_DONE: ['DEMO_DONE'],
+                PROPOSAL: ['PROPOSAL_PRICE_QUOTE'], NEGOTIATING: ['NEGOTIATION_REVIEW'],
+                COMPLETED: ['CLOSED_WON'], 'STALLED,OPTED_OUT': ['CLOSED_LOST'],
+              };
+              const stageDeals = deals.filter(deal => (dealStageMap[stage.key] || []).includes(deal.stage));
               return (
                 <section key={stage.key} className="min-h-[calc(100vh-190px)] border border-black bg-neutral-50">
                   <header className="border-b border-black bg-white px-3 py-2">
                     <div className="text-xs font-black">{stage.label}</div>
-                    <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{records.length} leads</div>
+                    <div className="mt-0.5 text-[10px] font-bold text-neutral-500">{records.length + stageDeals.length} leads</div>
                   </header>
                   <div className="space-y-2 p-2">
                     {records.slice(0, 100).map(contact => (
@@ -400,7 +575,15 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
                         <div className="mt-1 truncate font-mono text-[9px] text-neutral-600">{contact.emailNormalized}</div>
                       </button>
                     ))}
-                    {records.length === 0 && <div className="py-10 text-center text-[10px] font-bold text-neutral-400">Empty stage</div>}
+                    {stageDeals.map(deal => {
+                      const contact = contacts.find(item => item.id === deal.contactId);
+                      return <div key={deal.id} className="border-2 border-black bg-[#fffbea] p-2">
+                        <div className="truncate text-xs font-black">{deal.name}</div>
+                        <div className="mt-1 truncate text-[10px] font-semibold">{contact?.name || deal.owner}</div>
+                        <div className="mt-1 text-[9px] font-bold text-neutral-600">{deal.amount ? `Amount: ${deal.amount}` : 'Lead'} · {deal.probability || 0}%</div>
+                      </div>;
+                    })}
+                    {records.length === 0 && stageDeals.length === 0 && <div className="py-10 text-center text-[10px] font-bold text-neutral-400">Empty stage</div>}
                   </div>
                 </section>
               );
@@ -408,6 +591,74 @@ Alice Walker,alice@enterprise.com,Enterprise Tech,United States,duplicate,false,
           </div>
         )}
       </main>
+
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border-2 border-black bg-white p-5 shadow-2xl">
+            <div className="flex items-center justify-between border-b border-black pb-3">
+              <h3 className="text-base font-black">Add to CRM</h3>
+              <button onClick={() => setShowAddModal(false)}><X className="h-5 w-5" /></button>
+            </div>
+            <div className="my-4 grid grid-cols-3 gap-2">
+              {(['contact', 'organization', 'lead'] as const).map(kind => (
+                <button key={kind} onClick={() => { setAddKind(kind); setAddError(null); setAddForm({ stage: 'QUALIFICATION', probability: '10' }); }}
+                  className={`border border-black px-3 py-2 text-xs font-black capitalize ${addKind === kind ? 'bg-black text-white' : 'bg-white'}`}>
+                  {kind}
+                </button>
+              ))}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <AddField label={addKind === 'lead' ? 'Lead / Deal name *' : `${addKind === 'organization' ? 'Organization' : 'Contact'} name *`}
+                value={addForm.name} onChange={value => setAddForm(form => ({ ...form, name: value }))} />
+              {addKind === 'contact' && <>
+                <AddField label="Email *" type="email" value={addForm.email} onChange={value => setAddForm(form => ({ ...form, email: value }))} />
+                <AddField label="Organization" value={addForm.organisation} onChange={value => setAddForm(form => ({ ...form, organisation: value }))} />
+                <AddField label="Country" value={addForm.country} onChange={value => setAddForm(form => ({ ...form, country: value }))} />
+              </>}
+              {addKind === 'organization' && <>
+                <AddField label="Type" value={addForm.type} onChange={value => setAddForm(form => ({ ...form, type: value }))} />
+                <AddField label="Website" value={addForm.website} onChange={value => setAddForm(form => ({ ...form, website: value }))} />
+                <AddField label="Country" value={addForm.country} onChange={value => setAddForm(form => ({ ...form, country: value }))} />
+                <AddField label="Owner" value={addForm.owner} onChange={value => setAddForm(form => ({ ...form, owner: value }))} />
+                <AddField label="Phone" value={addForm.phone} onChange={value => setAddForm(form => ({ ...form, phone: value }))} />
+                <AddField label="Notes" value={addForm.notes} onChange={value => setAddForm(form => ({ ...form, notes: value }))} />
+              </>}
+              {addKind === 'lead' && <>
+                <label className="space-y-1 text-xs font-bold">Contact
+                  <select value={addForm.contactId || ''} onChange={event => setAddForm(form => ({ ...form, contactId: event.target.value }))}
+                    className="w-full border border-black bg-white px-2 py-2 font-medium">
+                    <option value="">No contact</option>
+                    {contacts.map(contact => <option key={contact.id} value={contact.id}>{contact.name} — {contact.organisation || 'Independent'}</option>)}
+                  </select>
+                </label>
+                <label className="space-y-1 text-xs font-bold">Stage
+                  <select value={addForm.stage || 'QUALIFICATION'} onChange={event => setAddForm(form => ({ ...form, stage: event.target.value }))}
+                    className="w-full border border-black bg-white px-2 py-2 font-medium">
+                    <option value="QUALIFICATION">Qualification</option><option value="NEEDS_ANALYSIS">Needs Analysis</option>
+                    <option value="DEMO_DONE">Demo Done</option>
+                    <option value="PROPOSAL_PRICE_QUOTE">Proposal / Price Quote</option><option value="NEGOTIATION_REVIEW">Negotiation / Review</option>
+                    <option value="CLOSED_WON">Closed Won</option><option value="CLOSED_LOST">Closed Lost</option>
+                  </select>
+                </label>
+                <AddField label="Amount" type="number" value={addForm.amount} onChange={value => setAddForm(form => ({ ...form, amount: value }))} />
+                <AddField label="Closing date" type="date" value={addForm.closingDate} onChange={value => setAddForm(form => ({ ...form, closingDate: value }))} />
+                <AddField label="Probability (%)" type="number" value={addForm.probability} onChange={value => setAddForm(form => ({ ...form, probability: value }))} />
+                <AddField label="Owner" value={addForm.owner} onChange={value => setAddForm(form => ({ ...form, owner: value }))} />
+                <AddField label="Sales rep" value={addForm.rep} onChange={value => setAddForm(form => ({ ...form, rep: value }))} />
+                <AddField label="Description" value={addForm.description} onChange={value => setAddForm(form => ({ ...form, description: value }))} />
+              </>}
+            </div>
+            {addError && <div className="mt-3 border border-red-700 bg-red-50 p-2 text-xs font-bold text-red-700">{addError}</div>}
+            <div className="mt-5 flex justify-end gap-2 border-t border-black pt-3">
+              <button onClick={() => setShowAddModal(false)} className="border border-black px-4 py-2 text-xs font-bold">Cancel</button>
+              <button onClick={handleAdd} disabled={addLoading || !addForm.name?.trim() || (addKind === 'contact' && !addForm.email?.trim())}
+                className="border border-black bg-black px-4 py-2 text-xs font-bold text-white disabled:opacity-40">
+                {addLoading ? 'Adding…' : `Add ${addKind}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* CSV Import Modal */}
       {showImportModal && (

@@ -98,6 +98,15 @@ export async function createTestDb() {
     );
     CREATE INDEX IF NOT EXISTS relationships_workspace_stage_idx ON relationships(workspace_id, stage);
 
+    CREATE TABLE IF NOT EXISTS deals (
+      id TEXT PRIMARY KEY, workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+      owner TEXT NOT NULL, name TEXT NOT NULL, contact_id TEXT REFERENCES contacts(id) ON DELETE SET NULL,
+      organization_id TEXT REFERENCES organizations(id) ON DELETE SET NULL, probability INTEGER NOT NULL DEFAULT 0,
+      stage TEXT NOT NULL DEFAULT 'QUALIFICATION', amount INTEGER, closing_date TIMESTAMPTZ,
+      description TEXT, rep TEXT, created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(), updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS deals_workspace_stage_idx ON deals(workspace_id, stage);
+
     CREATE TABLE IF NOT EXISTS messages (
       id TEXT PRIMARY KEY,
       workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { and, desc, eq } from 'drizzle-orm';
 import { getDbAsync } from '@/db/client';
-import { contacts, organizations, relationships } from '@/db/schema';
+import { contacts, deals, organizations, relationships } from '@/db/schema';
 
 export async function GET(req: Request) {
   try {
@@ -23,16 +23,12 @@ export async function GET(req: Request) {
         organizationPhone: organizations.phone,
         organizationNotes: organizations.notes,
         country: contacts.country,
-        tagsJson: contacts.tagsJson,
         status: contacts.status,
         isSuppressed: contacts.isSuppressed,
         suppressionReason: contacts.suppressionReason,
         createdAt: contacts.createdAt,
         relationshipId: relationships.id,
         stage: relationships.stage,
-        summary: relationships.summary,
-        lastInboundAt: relationships.lastInboundAt,
-        lastOutboundAt: relationships.lastOutboundAt,
       })
       .from(contacts)
       .leftJoin(
@@ -52,7 +48,9 @@ export async function GET(req: Request) {
       .where(eq(contacts.workspaceId, workspaceId))
       .orderBy(desc(contacts.updatedAt));
 
-    return NextResponse.json({ records, total: records.length });
+    const dealRecords = await db.select().from(deals)
+      .where(eq(deals.workspaceId, workspaceId)).orderBy(desc(deals.updatedAt));
+    return NextResponse.json({ records, deals: dealRecords, total: records.length });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }

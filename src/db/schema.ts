@@ -123,6 +123,30 @@ export const relationships = pgTable('relationships', {
 }));
 
 /**
+ * CRM DEALS
+ * Explicit commercial opportunities; never inferred from relationship stages.
+ */
+export const deals = pgTable('deals', {
+  id: text('id').primaryKey().$defaultFn(defaultId),
+  workspaceId: text('workspace_id').notNull().references(() => workspaces.id, { onDelete: 'cascade' }),
+  owner: text('owner').notNull(),
+  name: text('name').notNull(),
+  contactId: text('contact_id').references(() => contacts.id, { onDelete: 'set null' }),
+  organizationId: text('organization_id').references(() => organizations.id, { onDelete: 'set null' }),
+  probability: integer('probability').notNull().default(0),
+  stage: text('stage').notNull().default('QUALIFICATION'),
+  amount: integer('amount'),
+  closingDate: timestamp('closing_date', { withTimezone: true }),
+  description: text('description'),
+  rep: text('rep'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => ({
+  workspaceStageIdx: index('deals_workspace_stage_idx').on(table.workspaceId, table.stage),
+  workspaceContactIdx: index('deals_workspace_contact_idx').on(table.workspaceId, table.contactId),
+}));
+
+/**
  * 6. MESSAGES
  * Inbound and outbound communications history
  */
@@ -218,6 +242,9 @@ export type NewAgent = typeof agents.$inferInsert;
 
 export type Relationship = typeof relationships.$inferSelect;
 export type NewRelationship = typeof relationships.$inferInsert;
+
+export type Deal = typeof deals.$inferSelect;
+export type NewDeal = typeof deals.$inferInsert;
 
 export type Message = typeof messages.$inferSelect;
 export type NewMessage = typeof messages.$inferInsert;

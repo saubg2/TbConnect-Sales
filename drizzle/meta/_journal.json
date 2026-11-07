@@ -15,6 +15,13 @@
       "when": 1793836800000,
       "tag": "0001_add_crm_organizations",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1793961600000,
+      "tag": "0002_add_deals",
+      "breakpoints": true
     }
   ]
 }

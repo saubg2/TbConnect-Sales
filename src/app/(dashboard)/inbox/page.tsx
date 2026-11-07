@@ -33,7 +33,7 @@ export default function InboxPage() {
   const fetchInboxData = async () => {
     setLoading(true);
     try {
-      const res = await fetch('/api/dev/data');
+      const res = await fetch('/api/inbox?workspaceId=ws_default');
       const data = await res.json();
       if (data && !data.error) {
         setRelationships(data.relationships || []);
@@ -130,8 +130,8 @@ export default function InboxPage() {
       {/* Inbox Split View */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left Thread List */}
-        <aside className="w-96 border-r-2 border-slate-300 bg-white flex flex-col shadow-sm">
-          <div className="p-4 border-b-2 border-slate-200 bg-slate-50 flex items-center justify-between">
+        <aside className="w-72 border-r border-slate-300 bg-white flex flex-col shadow-sm">
+          <div className="px-3 py-2 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
             <div className="text-xs font-black text-slate-700 uppercase tracking-wider">
               Conversations ({relationships.length})
             </div>
@@ -140,7 +140,7 @@ export default function InboxPage() {
 
           <div className="flex-1 overflow-y-auto divide-y divide-slate-200">
             {relationships.length === 0 ? (
-              <div className="p-8 text-center text-sm text-slate-500 font-medium">
+              <div className="p-5 text-center text-xs text-slate-500 font-medium">
                 No active conversations yet.
               </div>
             ) : (
@@ -156,17 +156,17 @@ export default function InboxPage() {
                   <div
                     key={rel.id}
                     onClick={() => setSelectedRelationshipId(rel.id)}
-                    className={`p-4 cursor-pointer transition flex flex-col gap-1.5 ${
+                    className={`cursor-pointer px-3 py-2 transition ${
                       isSelected
                         ? 'bg-indigo-50 border-l-4 border-indigo-600'
                         : 'hover:bg-slate-50'
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-sm text-slate-900 truncate">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate text-xs font-black text-slate-900">
                         {contact?.name || 'Contact'}
                       </span>
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-black uppercase tracking-wider ${
+                      <span className={`shrink-0 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-wider ${
                         rel.stage === 'ENGAGED' ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' :
                         rel.stage === 'OPTED_OUT' ? 'bg-rose-100 text-rose-800 border border-rose-300' :
                         'bg-slate-200 text-slate-800'
@@ -175,11 +175,11 @@ export default function InboxPage() {
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-600 font-mono font-bold truncate">
-                      {contact?.emailNormalized}
+                    <div className="mt-0.5 truncate text-[10px] font-semibold text-slate-500">
+                      {contact?.organisation || 'Independent'}
                     </div>
 
-                    <div className="flex items-center gap-2 text-xs pt-1">
+                    <div className="mt-1 flex items-center gap-1 text-[9px]">
                       {hasTakeover && (
                         <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-300 font-bold text-[10px]">
                           Takeover Active

@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  ListChecks,
   AlertOctagon,
   Play,
   CheckCircle2,
@@ -14,7 +13,7 @@ import {
   Send,
   AlertTriangle,
 } from 'lucide-react';
-import Link from 'next/link';
+import { AppHeader } from '@/components/app-header';
 
 export default function ActionsPage() {
   const [actionsList, setActionsList] = useState<any[]>([]);
@@ -150,41 +149,13 @@ export default function ActionsPage() {
 
   return (
     <div className="sketch-page min-h-screen bg-slate-50 text-slate-900 flex flex-col font-sans">
-      {/* Top Navbar */}
-      <header className="border-b-2 border-slate-200 bg-white sticky top-0 z-10 px-6 py-4 flex items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <Link href="/" className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition">
-            ← Home
-          </Link>
-          <span className="text-slate-300">|</span>
-          <Link href="/contacts" className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition">
-            Contacts
-          </Link>
-          <span className="text-slate-300">|</span>
-          <Link href="/agents" className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition">
-            Agents
-          </Link>
-          <span className="text-slate-300">|</span>
-          <Link href="/inbox" className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition">
-            Inbox
-          </Link>
-          <span className="text-slate-300">|</span>
-          <div className="flex items-center gap-2">
-            <ListChecks className="w-5 h-5 text-indigo-600" />
-            <h1 className="text-base font-black text-slate-900">Actions</h1>
-          </div>
-          <span className="text-slate-300">|</span>
-          <Link href="/settings" className="text-sm font-semibold text-slate-700 hover:text-slate-900 transition">
-            Settings
-          </Link>
-        </div>
-
-        <div className="flex items-center gap-3">
+      <AppHeader actions={
+        <>
           {/* Emergency Stop Button */}
           <button
             onClick={toggleEmergencyStop}
             disabled={emergencyLoading}
-            className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition border-2 shadow-sm ${
+            className={`flex items-center gap-1.5 border border-black px-3 py-1.5 text-xs font-bold transition ${
               emergencyActive
                 ? 'bg-rose-600 hover:bg-rose-700 text-white border-rose-700 animate-pulse'
                 : 'bg-rose-50 hover:bg-rose-100 text-rose-800 border-rose-300'
@@ -198,7 +169,7 @@ export default function ActionsPage() {
           <button
             onClick={notifyTelegram}
             disabled={telegramLoading}
-            className="flex items-center gap-2 px-3.5 py-2 rounded-lg bg-sky-600 hover:bg-sky-700 text-white text-sm font-bold shadow-sm transition border-2 border-sky-700 disabled:opacity-50"
+            className="flex items-center gap-1.5 border border-black bg-white px-3 py-1.5 text-xs font-bold text-black transition hover:bg-neutral-100 disabled:opacity-50"
           >
             <Send className={`w-4 h-4 ${telegramLoading ? 'animate-spin' : ''}`} />
             {telegramLoading ? 'Sending...' : 'Send to Telegram'}
@@ -208,7 +179,7 @@ export default function ActionsPage() {
           <button
             onClick={runWorkerCycle}
             disabled={workerLoading || emergencyActive}
-            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-sm transition disabled:opacity-50 border-2 border-indigo-700"
+            className="flex items-center gap-1.5 border border-black bg-black px-3 py-1.5 text-xs font-bold text-white transition hover:bg-neutral-800 disabled:opacity-50"
           >
             <Play className={`w-4 h-4 ${workerLoading ? 'animate-spin' : ''}`} />
             Run Queue Worker
@@ -217,12 +188,12 @@ export default function ActionsPage() {
           <button
             onClick={fetchActions}
             disabled={loading}
-            className="p-2 rounded-lg bg-white hover:bg-slate-100 text-slate-800 border-2 border-slate-300 shadow-sm transition"
+            className="border border-black bg-white p-1.5 text-black transition hover:bg-neutral-100"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
-        </div>
-      </header>
+        </>
+      } />
 
       {/* Main Container */}
       <main className="flex-1 p-6 max-w-7xl w-full mx-auto space-y-6">
